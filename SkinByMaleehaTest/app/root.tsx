@@ -11,12 +11,13 @@ import {
   useRouteLoaderData,
 } from 'react-router';
 import type {Route} from './+types/root';
-import favicon from '~/assets/favicon.svg';
-import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
-import resetStyles from '~/styles/reset.css?url';
-import appStyles from '~/styles/app.css?url';
-import tailwindCss from './styles/tailwind.css?url';
+import favicon from '~/assets/sbm/logo/emblem-charcoal.png';
+import monaSans from '~/assets/sbm/fonts/mona-sans.woff2?url';
+import bodoniModa from '~/assets/sbm/fonts/bodoni-moda.woff2?url';
+import {SBM_FOOTER_QUERY} from '~/lib/fragments';
+import sbmStyles from '~/styles/sbm.css?url';
 import {PageLayout} from './components/PageLayout';
+import {Button} from './components/sbm/Controls';
 
 export type RootLoader = typeof loader;
 
@@ -62,7 +63,9 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    {rel: 'icon', type: 'image/svg+xml', href: favicon},
+    {rel: 'icon', type: 'image/png', href: favicon},
+    {rel: 'preload', as: 'font', type: 'font/woff2', href: monaSans, crossOrigin: 'anonymous'},
+    {rel: 'preload', as: 'font', type: 'font/woff2', href: bodoniModa, crossOrigin: 'anonymous'},
   ];
 }
 
@@ -70,14 +73,10 @@ export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
   const {storefront, env} = args.context;
 
   return {
     ...deferredData,
-    ...criticalData,
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     shop: getShopAnalytics({
       storefront,
@@ -95,26 +94,6 @@ export async function loader(args: Route.LoaderArgs) {
 }
 
 /**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context}: Route.LoaderArgs) {
-  const {storefront} = context;
-
-  const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  return {header};
-}
-
-/**
  * Load data for rendering content below the fold. This data is deferred and will be
  * fetched after the initial page load. If it's unavailable, the page should still 200.
  * Make sure to not throw any errors here, as it will cause the page to 500.
@@ -122,13 +101,10 @@ async function loadCriticalData({context}: Route.LoaderArgs) {
 function loadDeferredData({context}: Route.LoaderArgs) {
   const {storefront, customerAccount, cart} = context;
 
-  // defer the footer query (below the fold)
+  // defer the footer query (below the fold): which help links have content
   const footer = storefront
-    .query(FOOTER_QUERY, {
+    .query(SBM_FOOTER_QUERY, {
       cache: storefront.CacheLong(),
-      variables: {
-        footerMenuHandle: 'footer', // Adjust to your footer menu handle
-      },
     })
     .catch((error: Error) => {
       // Log query errors, but don't throw them so the page can still render
@@ -150,9 +126,7 @@ export function Layout({children}: {children?: React.ReactNode}) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <link rel="stylesheet" href={tailwindCss}></link>
-        <link rel="stylesheet" href={resetStyles}></link>
-        <link rel="stylesheet" href={appStyles}></link>
+        <link rel="stylesheet" href={sbmStyles}></link>
         <Meta />
         <Links />
       </head>
@@ -198,14 +172,23 @@ export function ErrorBoundary() {
   }
 
   return (
-    <div className="route-error">
-      <h1>Oops</h1>
-      <h2>{errorStatus}</h2>
-      {errorMessage && (
-        <fieldset>
-          <pre>{errorMessage}</pre>
-        </fieldset>
-      )}
-    </div>
+    <section className="sf-section">
+      <div className="sf-wrap sf-page sf-error">
+        <p className="sbm-eyebrow">Error {errorStatus}</p>
+        <h1 className="sbm-h1">
+          {errorStatus === 404 ? (
+            <>
+              Page <em>not found</em>
+            </>
+          ) : (
+            <>
+              Something <em>went wrong</em>
+            </>
+          )}
+        </h1>
+        {errorMessage && <p className="sbm-body sf-error__message">{errorMessage}</p>}
+        <Button to="/">Back to home</Button>
+      </div>
+    </section>
   );
 }

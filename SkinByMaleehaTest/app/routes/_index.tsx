@@ -1,177 +1,163 @@
-import {Await, useLoaderData, Link} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/_index';
-import {Suspense} from 'react';
-import {Image} from '@shopify/hydrogen';
-import type {
-  FeaturedCollectionFragment,
-  RecommendedProductsQuery,
-} from 'storefrontapi.generated';
-import {ProductItem} from '~/components/ProductItem';
-import {MockShopNotice} from '~/components/MockShopNotice';
+import heroImage from '~/assets/sbm/imagery/packaging-lifestyle.jpg';
+import featureImage from '~/assets/sbm/imagery/texture-bubbles-blue.jpg';
+import {SBM_PRODUCT_CARD_FRAGMENT, toCardProduct} from '~/lib/sbm-product';
+import {Emblem, InfoBadge, Lockup, Signature} from '~/components/sbm/Brand';
+import {Button} from '~/components/sbm/Controls';
+import {FeatureCard, ProductCard} from '~/components/sbm/ProductCard';
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Hydrogen | Home'}];
+  return [
+    {title: 'skinbymaleeha | Formulated by a dermatologist'},
+    {
+      name: 'description',
+      content:
+        'Science perfected for skin that naturally thrives daily. Mindfully formulated skincare by Dr Maleeha Jawaid.',
+    },
+  ];
 };
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+export const links: Route.LinksFunction = () => [
+  {rel: 'preload', as: 'image', href: heroImage},
+];
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context}: Route.LoaderArgs) {
-  const [{collections}] = await Promise.all([
-    context.storefront.query(FEATURED_COLLECTION_QUERY),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
+export async function loader({context}: Route.LoaderArgs) {
+  const {range, centella} = await context.storefront.query(HOME_QUERY, {
+    variables: {rangeHandle: 'the-range', featureHandle: 'centella-moisturiser'},
+  });
   return {
-    isShopLinked: Boolean(context.env.PUBLIC_STORE_DOMAIN),
-    featuredCollection: collections.nodes[0],
+    products: (range?.products.nodes ?? []).map(toCardProduct),
+    centella: centella ? toCardProduct(centella) : null,
   };
 }
 
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  const recommendedProducts = context.storefront
-    .query(RECOMMENDED_PRODUCTS_QUERY)
-    .catch((error: Error) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
-      return null;
-    });
-
-  return {
-    recommendedProducts,
-  };
-}
+const CLAIMS = ['24h', 'spf50', 'all-skin', 'ph', 'glow'] as const;
 
 export default function Homepage() {
-  const data = useLoaderData<typeof loader>();
+  const {products, centella} = useLoaderData<typeof loader>();
   return (
-    <div className="home">
-      {data.isShopLinked ? null : <MockShopNotice />}
-      <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
-    </div>
-  );
-}
-
-function FeaturedCollection({
-  collection,
-}: {
-  collection: FeaturedCollectionFragment;
-}) {
-  if (!collection) return null;
-  const image = collection?.image;
-  return (
-    <Link
-      className="featured-collection"
-      to={`/collections/${collection.handle}`}
-    >
-      {image && (
-        <div className="featured-collection-image">
-          <Image
-            data={image}
-            sizes="100vw"
-            alt={image.altText || collection.title}
-          />
+    <>
+      <section className="sf-hero">
+        <div className="sf-hero__copy">
+          <p className="sbm-eyebrow">Formulated by a dermatologist</p>
+          <h1 className="sbm-display-m" style={{maxWidth: '13ch'}}>
+            Science perfected for skin that <em>naturally thrives daily</em>
+          </h1>
+          <p className="sbm-lede" style={{maxWidth: 460, color: 'var(--fg-2)'}}>
+            Mindfully formulated for skin that feels beautifully balanced. Gentle dermatologist
+            care for visibly healthy, radiant skin daily.
+          </p>
+          <div className="sf-row" style={{gap: 28}}>
+            <Button size="lg" to="/collections/all">
+              Shop the range
+            </Button>
+            <Button variant="link" iconRight="arrow-right" to="#founder">
+              Meet Dr Maleeha
+            </Button>
+          </div>
         </div>
-      )}
-      <h1>{collection.title}</h1>
-    </Link>
+        <div className="sf-hero__img" style={{backgroundImage: `url(${heroImage})`}} />
+      </section>
+
+      <section className="sf-claims">
+        <div className="sf-claims__in">
+          <div className="sf-claims__badges">
+            {CLAIMS.map((t) => (
+              <InfoBadge key={t} type={t} tone="serum" size={84} />
+            ))}
+          </div>
+          <Lockup type="claims" height={40} />
+        </div>
+      </section>
+
+      <section className="sf-section">
+        <div className="sf-wrap">
+          <div className="sf-head-row">
+            <h2 className="sbm-h1">
+              The <em>range</em>
+            </h2>
+            <Button variant="link" iconRight="arrow-right" to="/collections/all">
+              Shop all
+            </Button>
+          </div>
+          <div className="sf-grid">
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="sf-banner">
+        <div className="sf-wrap sf-banner__in">
+          <h2
+            className="sbm-sans-headline"
+            style={{fontSize: 'clamp(40px, 5.6vw, 80px)', maxWidth: '16ch'}}
+          >
+            Barrier repair, clinically calm moisturiser cream for you
+          </h2>
+          <Button variant="white" size="lg" to="/products/centella-moisturiser">
+            Discover
+          </Button>
+        </div>
+      </section>
+
+      {centella ? (
+        <section className="sf-feature">
+          <div className="sf-feature__img" style={{backgroundImage: `url(${featureImage})`}} />
+          <div className="sf-feature__card">
+            <FeatureCard
+              elevated
+              style={{width: 'min(100%, 380px)'}}
+              title={
+                <span>
+                  The <em>Centella</em> Collection
+                </span>
+              }
+              description={centella.description}
+              product={centella}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="sf-founder" id="founder">
+        <div className="sf-founder__in">
+          <Emblem size={44} />
+          <p className="sbm-eyebrow">From the dermatologist</p>
+          <p
+            className="sbm-h2"
+            style={{textTransform: 'none', letterSpacing: '.01em', lineHeight: 1.2}}
+          >
+            “Formulated with dermatologists for all skin types, ensuring{' '}
+            <em>optimal hydration</em> and maximum protection.”
+          </p>
+          <Signature width={230} />
+          <p className="sbm-caption">Dr. Maleeha Jawaid · Consultant Dermatologist</p>
+        </div>
+      </section>
+    </>
   );
 }
 
-function RecommendedProducts({
-  products,
-}: {
-  products: Promise<RecommendedProductsQuery | null>;
-}) {
-  return (
-    <section
-      className="recommended-products"
-      aria-labelledby="recommended-products"
-    >
-      <h2 id="recommended-products">Recommended Products</h2>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Await resolve={products}>
-          {(response) => (
-            <div className="recommended-products-grid">
-              {response
-                ? response.products.nodes.map((product) => (
-                    <ProductItem key={product.id} product={product} />
-                  ))
-                : null}
-            </div>
-          )}
-        </Await>
-      </Suspense>
-      <br />
-    </section>
-  );
-}
-
-const FEATURED_COLLECTION_QUERY = `#graphql
-  fragment FeaturedCollection on Collection {
-    id
-    title
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    handle
-  }
-  query FeaturedCollection($country: CountryCode, $language: LanguageCode)
-    @inContext(country: $country, language: $language) {
-    collections(first: 1, sortKey: UPDATED_AT, reverse: true) {
-      nodes {
-        ...FeaturedCollection
+const HOME_QUERY = `#graphql
+  query SbmHome(
+    $country: CountryCode
+    $language: LanguageCode
+    $rangeHandle: String!
+    $featureHandle: String!
+  ) @inContext(country: $country, language: $language) {
+    range: collection(handle: $rangeHandle) {
+      products(first: 8) {
+        nodes {
+          ...SbmProductCard
+        }
       }
     }
-  }
-` as const;
-
-const RECOMMENDED_PRODUCTS_QUERY = `#graphql
-  fragment RecommendedProduct on Product {
-    id
-    title
-    handle
-    priceRange {
-      minVariantPrice {
-        amount
-        currencyCode
-      }
-    }
-    featuredImage {
-      id
-      url
-      altText
-      width
-      height
+    centella: product(handle: $featureHandle) {
+      ...SbmProductCard
     }
   }
-  query RecommendedProducts ($country: CountryCode, $language: LanguageCode)
-    @inContext(country: $country, language: $language) {
-    products(first: 4, sortKey: UPDATED_AT, reverse: true) {
-      nodes {
-        ...RecommendedProduct
-      }
-    }
-  }
+  ${SBM_PRODUCT_CARD_FRAGMENT}
 ` as const;

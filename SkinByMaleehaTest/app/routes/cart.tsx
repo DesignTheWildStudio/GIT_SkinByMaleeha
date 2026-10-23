@@ -1,11 +1,11 @@
 import {useLoaderData, data, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/cart';
 import type {CartQueryDataReturn} from '@shopify/hydrogen';
-import {CartForm} from '@shopify/hydrogen';
-import {CartMain} from '~/components/CartMain';
+import {CartForm, useOptimisticCart} from '@shopify/hydrogen';
+import {BagEmpty, BagLines, BagSummary} from '~/components/sbm/Bag';
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: `Hydrogen | Cart`}];
+  return [{title: 'Your bag | skinbymaleeha'}];
 };
 
 export const headers: HeadersFunction = ({actionHeaders}) => actionHeaders;
@@ -102,12 +102,28 @@ export async function loader({context}: Route.LoaderArgs) {
 }
 
 export default function Cart() {
-  const cart = useLoaderData<typeof loader>();
+  const cart = useOptimisticCart(useLoaderData<typeof loader>());
+  const lines = cart?.lines?.nodes ?? [];
 
   return (
-    <div className="cart">
-      <h1>Cart</h1>
-      <CartMain layout="page" cart={cart} />
-    </div>
+    <section className="sf-section">
+      <div className="sf-wrap">
+        <div className="sf-head-row">
+          <h1 className="sbm-h1">
+            Your <em>bag</em>
+          </h1>
+        </div>
+        {lines.length === 0 ? (
+          <BagEmpty />
+        ) : (
+          <div className="sf-cart">
+            <BagLines lines={lines} />
+            <aside className="sf-cart__summary">
+              <BagSummary cart={cart} />
+            </aside>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
