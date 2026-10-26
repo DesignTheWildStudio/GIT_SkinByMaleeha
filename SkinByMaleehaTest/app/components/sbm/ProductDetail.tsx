@@ -1,4 +1,4 @@
-import {useState, type CSSProperties, type ReactNode} from 'react';
+import {useState, type CSSProperties} from 'react';
 import {Link} from 'react-router';
 import {Image} from '@shopify/hydrogen';
 import {Accordion, type AccordionItem} from './Accordion';
@@ -176,56 +176,4 @@ export function ProductDetails({
   const items = sections.filter((it): it is AccordionItem => it !== null);
   if (!items.length) return null;
   return <Accordion className="sf-pdp__details" items={items} defaultOpen={[0]} />;
-}
-
-/** Outline pill chip — selectable filter (onClick) or removable token (onRemove). Port of the design system Tag. */
-export function Tag({
-  selected = false,
-  onClick,
-  onRemove,
-  disabled,
-  className = '',
-  style,
-  children,
-}: {
-  selected?: boolean;
-  onClick?: () => void;
-  onRemove?: () => void;
-  disabled?: boolean;
-  className?: string;
-  style?: CSSProperties;
-  children?: ReactNode;
-}) {
-  const cls = ['sbm-tag', selected ? 'sbm-tag--selected' : '', className]
-    .filter(Boolean)
-    .join(' ');
-  if (onRemove) {
-    return (
-      <span className={cls} style={style}>
-        {children}
-        <button type="button" className="sbm-tag__remove" aria-label="Remove" onClick={onRemove}>
-          <Icon name="x" size={14} />
-        </button>
-      </span>
-    );
-  }
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        className={cls}
-        style={style}
-        aria-pressed={selected}
-        disabled={disabled}
-        onClick={onClick}
-      >
-        {children}
-      </button>
-    );
-  }
-  return (
-    <span className={cls} style={style}>
-      {children}
-    </span>
-  );
 }

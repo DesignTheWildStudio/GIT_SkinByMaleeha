@@ -13,7 +13,11 @@ type SelectedPolicies = keyof Pick<
 
 export const meta: Route.MetaFunction = ({data}) => {
   return [
-    {title: data?.policy ? `${data.policy.title} | skinbymaleeha` : 'Policy | skinbymaleeha'},
+    {
+      title: data?.policy
+        ? `${data.policy.title} | skinbymaleeha`
+        : 'Page not found | skinbymaleeha',
+    },
   ];
 };
 

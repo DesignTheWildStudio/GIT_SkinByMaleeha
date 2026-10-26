@@ -12,7 +12,7 @@ import styles from '~/styles/sbm-pages.css?url';
 
 export const meta: Route.MetaFunction = ({data}) => {
   const blog = data?.blog;
-  if (!blog) return [{title: 'Journal | skinbymaleeha'}];
+  if (!blog) return [{title: 'Page not found | skinbymaleeha'}];
   const description = blog.seo?.description;
   return [
     {title: `${blog.seo?.title || blog.title} | skinbymaleeha`},
@@ -37,8 +37,9 @@ export async function loader(args: Route.LoaderArgs) {
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
  */
 async function loadCriticalData({context, request, params}: Route.LoaderArgs) {
+  // two full rows of the three-up article grid
   const paginationVariables = getPaginationVariables(request, {
-    pageBy: 4,
+    pageBy: 6,
   });
 
   if (!params.blogHandle) {

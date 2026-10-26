@@ -6,6 +6,10 @@ import {PageError} from '~/components/sbm/PageError';
 import {PageHeader} from '~/components/sbm/PageHeader';
 import styles from '~/styles/sbm-pages.css?url';
 
+export const meta: Route.MetaFunction = () => {
+  return [{title: 'Your account | skinbymaleeha'}];
+};
+
 export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export function shouldRevalidate() {

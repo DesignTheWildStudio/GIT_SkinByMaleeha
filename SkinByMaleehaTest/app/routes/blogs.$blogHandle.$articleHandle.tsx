@@ -9,7 +9,7 @@ import styles from '~/styles/sbm-pages.css?url';
 
 export const meta: Route.MetaFunction = ({data}) => {
   const article = data?.article;
-  if (!article) return [{title: 'Journal | skinbymaleeha'}];
+  if (!article) return [{title: 'Page not found | skinbymaleeha'}];
   const description = article.seo?.description;
   return [
     {title: `${article.seo?.title || article.title} | skinbymaleeha`},

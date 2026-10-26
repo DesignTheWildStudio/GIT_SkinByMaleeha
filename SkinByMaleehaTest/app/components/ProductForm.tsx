@@ -1,10 +1,10 @@
 import {useId, useState} from 'react';
-import {Link, useNavigate} from 'react-router';
+import {useNavigate} from 'react-router';
 import type {MappedProductOptions} from '@shopify/hydrogen';
 import type {ProductFragment} from 'storefrontapi.generated';
 import {AddToBagButton} from './sbm/Bag';
 import {Button, QuantityStepper, QuantityStepperButton} from './sbm/Controls';
-import {Tag} from './sbm/ProductDetail';
+import {Tag} from './sbm/Filters';
 
 const MAX_QUANTITY = 10;
 
@@ -46,6 +46,7 @@ export function ProductForm({
         {selectedVariant ? (
           <AddToBagButton
             variantId={selectedVariant.id}
+            selectedVariant={selectedVariant}
             available={selectedVariant.availableForSale}
             quantity={quantity}
             variant="primary"
@@ -81,32 +82,35 @@ function ProductOption({option}: {option: MappedProductOptions}) {
               {name}
             </>
           );
-          const unavailable = available ? '' : 'is-unavailable';
+          const key = option.name + name;
+          const className = available ? undefined : 'is-unavailable';
           if (isDifferentProduct) {
             // Combined-listing child products are real links (crawlable)
             return (
-              <Link
-                key={option.name + name}
-                className={['sbm-tag', selected ? 'sbm-tag--selected' : '', unavailable]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-current={selected || undefined}
-                prefetch="intent"
-                preventScrollReset
-                replace
+              <Tag
+                key={key}
                 to={`/products/${handle}?${variantUriQuery}`}
+                selected={selected}
+                className={className}
               >
                 {content}
-              </Link>
+              </Tag>
+            );
+          }
+          if (!exists) {
+            // Combination that has no variant: shown, but not selectable
+            return (
+              <Tag key={key} className="is-unavailable is-disabled" aria-disabled="true">
+                {content}
+              </Tag>
             );
           }
           // Same-product variants update the search param without creating indexable links
           return (
             <Tag
-              key={option.name + name}
+              key={key}
               selected={selected}
-              disabled={!exists}
-              className={unavailable}
+              className={className}
               onClick={() => {
                 if (!selected) {
                   void navigate(`?${variantUriQuery}`, {replace: true, preventScrollReset: true});
