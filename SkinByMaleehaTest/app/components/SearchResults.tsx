@@ -101,8 +101,12 @@ function SearchResultsProducts({
       <PaginatedResourceSection<SearchProductNode>
         connection={products}
         resourcesClassName="sf-grid"
+        // the full match count, not just the page loaded so far
         header={({nodes}) => (
-          <PageSectionHead title="Products" meta={countLabel(nodes.length, 'product')} />
+          <PageSectionHead
+            title="Products"
+            meta={countLabel(Math.max(products.totalCount, nodes.length), 'product')}
+          />
         )}
       >
         {({node, index}) => (

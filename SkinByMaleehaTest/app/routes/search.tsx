@@ -4,6 +4,7 @@ import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {SearchForm} from '~/components/SearchForm';
 import {SearchResults} from '~/components/SearchResults';
 import {FormMessage} from '~/components/sbm/FormFields';
+import {PageError} from '~/components/sbm/PageError';
 import {PageHeader} from '~/components/sbm/PageHeader';
 import {SBM_PRODUCT_CARD_FRAGMENT} from '~/lib/sbm-product';
 import {
@@ -98,6 +99,10 @@ export default function SearchPage() {
   );
 }
 
+export function ErrorBoundary() {
+  return <PageError />;
+}
+
 /**
  * Regular search query and fragments
  * (adjust as needed)
@@ -150,13 +155,14 @@ export const SEARCH_QUERY = `#graphql
     $first: Int
     $language: LanguageCode
     $last: Int
+    $linksFirst: Int!
     $term: String!
     $startCursor: String
   ) @inContext(country: $country, language: $language) {
     articles: search(
       query: $term,
       types: [ARTICLE],
-      first: $first,
+      first: $linksFirst,
     ) {
       nodes {
         ...on Article {
@@ -167,7 +173,7 @@ export const SEARCH_QUERY = `#graphql
     pages: search(
       query: $term,
       types: [PAGE],
-      first: $first,
+      first: $linksFirst,
     ) {
       nodes {
         ...on Page {
@@ -185,6 +191,7 @@ export const SEARCH_QUERY = `#graphql
       types: [PRODUCT],
       unavailableProducts: HIDE,
     ) {
+      totalCount
       nodes {
         ...on Product {
           ...SearchProduct
@@ -202,6 +209,20 @@ export const SEARCH_QUERY = `#graphql
   ${PAGE_INFO_FRAGMENT}
 ` as const;
 
+const PAGE_BY = 8;
+
+function emptyRegularSearch(): RegularSearchQuery {
+  return {
+    articles: {nodes: []},
+    pages: {nodes: []},
+    products: {
+      totalCount: 0,
+      nodes: [],
+      pageInfo: {hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null},
+    },
+  };
+}
+
 /**
  * Regular search fetcher
  */
@@ -214,26 +235,28 @@ async function regularSearch({
 >): Promise<RegularSearchReturn> {
   const {storefront} = context;
   const url = new URL(request.url);
-  const variables = getPaginationVariables(request, {pageBy: 8});
-  const term = String(url.searchParams.get('q') || '');
+  const variables = getPaginationVariables(request, {pageBy: PAGE_BY});
+  const term = String(url.searchParams.get('q') || '').trim();
 
-  // Search articles, pages, and products for the `q` term
+  // a blank or whitespace-only query shows the "Search the range" state without asking Shopify
+  if (!term) return {type: 'regular', term, result: {total: 0, items: emptyRegularSearch()}};
+
+  // Search articles, pages, and products for the `q` term. Pages and articles are a short
+  // list with no paging of their own, so they keep a fixed size (`$first` is null when
+  // paging back through products).
   const {
     errors,
     ...items
   }: {errors?: Array<{message: string}>} & RegularSearchQuery =
     await storefront.query(SEARCH_QUERY, {
-      variables: {...variables, term},
+      variables: {...variables, linksFirst: PAGE_BY, term},
     });
 
   if (!items) {
     throw new Error('No search data returned from Shopify API');
   }
 
-  const total = Object.values(items).reduce(
-    (acc: number, {nodes}: {nodes: Array<unknown>}) => acc + nodes.length,
-    0,
-  );
+  const total = items.articles.nodes.length + items.pages.nodes.length + items.products.nodes.length;
 
   const error = errors
     ? errors.map(({message}: {message: string}) => message).join(', ')

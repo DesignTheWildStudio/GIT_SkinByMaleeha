@@ -6,6 +6,7 @@ import type {
   OrderQuery,
 } from 'customer-accountapi.generated';
 import {CUSTOMER_ORDER_QUERY} from '~/graphql/customer-account/CustomerOrderQuery';
+import {Button} from '~/components/sbm/Controls';
 import {Icon} from '~/components/sbm/Icon';
 import {
   OrderNumber,
@@ -29,7 +30,13 @@ export async function loader({params, context}: Route.LoaderArgs) {
     return redirect('/account/orders');
   }
 
-  const orderId = atob(params.id);
+  let orderId: string;
+  try {
+    orderId = atob(params.id);
+  } catch {
+    throw new Response('Order not found', {status: 404});
+  }
+
   const {data, errors}: {data: OrderQuery; errors?: Array<{message: string}>} =
     await customerAccount.query(CUSTOMER_ORDER_QUERY, {
       variables: {
@@ -38,8 +45,9 @@ export async function loader({params, context}: Route.LoaderArgs) {
       },
     });
 
+  // an unknown id, or one from another customer, is a 404 rather than a server error
   if (errors?.length || !data?.order) {
-    throw new Error('Order not found');
+    throw new Response('Order not found', {status: 404});
   }
 
   const {order} = data;
@@ -235,6 +243,20 @@ function OrderLineRow({lineItem}: {lineItem: OrderLineItemFullFragment}) {
   );
 }
 
+/** Renders inside the account layout, under its heading and tabs. */
 export function ErrorBoundary() {
-  return <PageError />;
+  return (
+    <PageError
+      inline
+      notFoundCopy="We couldn’t find that order on your account. It may be from another account, or the link may be out of date."
+      actions={
+        <>
+          <Button to="/account/orders">Back to orders</Button>
+          <Button variant="outline" to="/collections/all">
+            Shop all skincare
+          </Button>
+        </>
+      }
+    />
+  );
 }

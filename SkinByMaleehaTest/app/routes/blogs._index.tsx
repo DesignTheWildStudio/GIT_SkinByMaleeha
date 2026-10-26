@@ -4,6 +4,7 @@ import {getPaginationVariables} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import type {BlogsQuery} from 'storefrontapi.generated';
 import {Button} from '~/components/sbm/Controls';
+import {PageError} from '~/components/sbm/PageError';
 import {PageEmpty, PageLinkRow} from '~/components/sbm/PageHeader';
 import styles from '~/styles/sbm-pages.css?url';
 
@@ -94,6 +95,10 @@ export default function Blogs() {
       </div>
     </section>
   );
+}
+
+export function ErrorBoundary() {
+  return <PageError />;
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/blog

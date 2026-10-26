@@ -3,7 +3,7 @@ import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
 import {Image} from '@shopify/hydrogen';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {Button} from '~/components/sbm/Controls';
-import {PageCrumbs, RichText, formatDate} from '~/components/sbm/PageHeader';
+import {PageCrumbs, RichText, accentTitle, formatDate} from '~/components/sbm/PageHeader';
 import {PageError} from '~/components/sbm/PageError';
 import styles from '~/styles/sbm-pages.css?url';
 
@@ -97,7 +97,7 @@ export default function Article() {
             <p className="sbm-eyebrow">
               <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
             </p>
-            <h1 className="sbm-h1">{title}</h1>
+            <h1 className="sbm-h1">{accentTitle(title)}</h1>
             {author?.name ? (
               <p className="sf-doc__meta">
                 <span>By {author.name}</span>

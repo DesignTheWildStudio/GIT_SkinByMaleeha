@@ -57,7 +57,7 @@ interface UrlWithTrackingParams {
  * const term = 'search term';
  * const url = urlWithTrackingParams({ baseUrl, trackingParams, params, term });
  * console.log(url);
- * // Output: 'https://www.example.com?foo=bar&q=search%20term&utm_source=shopify&utm_medium=shopify_app&utm_campaign=storefront'
+ * // Output: 'https://www.example.com?foo=bar&q=search+term&utm_source=shopify&utm_medium=shopify_app&utm_campaign=storefront'
  * ```
  */
 export function urlWithTrackingParams({
@@ -66,9 +66,10 @@ export function urlWithTrackingParams({
   params: extraParams,
   term,
 }: UrlWithTrackingParams) {
+  // URLSearchParams does the encoding; encoding first would double it ("hand%2520wash")
   let search = new URLSearchParams({
     ...extraParams,
-    q: encodeURIComponent(term),
+    q: term,
   }).toString();
 
   if (trackingParams) {

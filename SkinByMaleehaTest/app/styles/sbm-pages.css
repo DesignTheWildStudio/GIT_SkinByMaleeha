@@ -9,7 +9,8 @@
 .sf-pagehead__row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px}
 .sf-pagehead__intro{display:flex;flex-direction:column;gap:16px;min-width:0;max-width:880px}
 .sf-pagehead__intro .sbm-eyebrow{margin-bottom:-2px}
-.sf-pagehead h1,.sf-doc__head h1,.sf-error h1{overflow-wrap:anywhere}
+/* break only words too long for the line (anywhere would split short words in narrow columns) */
+.sf-pagehead h1,.sf-doc__head h1,.sf-error :is(h1,h2){overflow-wrap:break-word}
 .sf-pagehead__lede{max-width:520px;color:var(--fg-2)}
 .sf-sectionhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:28px}
 
@@ -31,7 +32,8 @@ a.sbm-tag{color:var(--fg-1);text-decoration:none;cursor:pointer}
 a.sbm-tag:hover{border-color:var(--border-strong);color:var(--fg-1)}
 
 /* ---------- Document layout: sticky title column + reading column ---------- */
-.sf-doc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,var(--container-text));gap:clamp(40px,6vw,96px);align-items:start}
+/* the title column keeps room for a caps display word; the reading column gives way on small laptops */
+.sf-doc{display:grid;grid-template-columns:minmax(320px,1fr) minmax(0,var(--container-text));gap:clamp(40px,6vw,96px);align-items:start}
 .sf-doc__head{position:sticky;top:calc(var(--header-height) + 40px);display:flex;flex-direction:column;gap:16px;min-width:0}
 .sf-doc__head .sf-crumbs{margin-bottom:12px}
 .sf-doc__head .sbm-eyebrow{margin-bottom:-2px}
@@ -174,6 +176,7 @@ a.sbm-tab:hover{color:var(--fg-1)}
 @media (max-width:960px){
   .sf-doc{grid-template-columns:minmax(0,1fr)}
   .sf-doc__head{position:static}
+  .sf-doc__body{max-width:var(--container-text)}
   .sf-articles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .sf-order,.sf-addresses{grid-template-columns:minmax(0,1fr)}
   .sf-order__aside{position:static}
