@@ -32,19 +32,34 @@ export const meta: Route.MetaFunction = () => {
 
 export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
+const PAGE_BY = 12;
+
 export async function loader({context, request}: Route.LoaderArgs) {
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 12,
+  // Over-fetch by the hidden collections so a page still holds PAGE_BY tiles, then trim
+  // and point the cursors at the first and last tile shown, so none is skipped.
+  const pagination = getPaginationVariables(request, {
+    pageBy: PAGE_BY + HIDDEN.size,
   });
+  const backwards = 'last' in pagination;
 
   const {collections} = await context.storefront.query(COLLECTIONS_QUERY, {
-    variables: paginationVariables,
+    variables: pagination,
   });
+
+  const {edges, pageInfo} = collections;
+  const visible = edges.filter(({node}) => !HIDDEN.has(node.handle));
+  const page = backwards ? visible.slice(-PAGE_BY) : visible.slice(0, PAGE_BY);
+  const trimmed = visible.length > page.length;
 
   return {
     collections: {
-      ...collections,
-      nodes: collections.nodes.filter((c) => !HIDDEN.has(c.handle)),
+      nodes: page.map(({node}) => node),
+      pageInfo: {
+        hasPreviousPage: pageInfo.hasPreviousPage || (backwards && trimmed),
+        hasNextPage: pageInfo.hasNextPage || (!backwards && trimmed),
+        startCursor: page[0]?.cursor ?? pageInfo.startCursor,
+        endCursor: page.at(-1)?.cursor ?? pageInfo.endCursor,
+      },
     },
   };
 }
@@ -175,8 +190,11 @@ const COLLECTIONS_QUERY = `#graphql
       before: $startCursor,
       after: $endCursor
     ) {
-      nodes {
-        ...Collection
+      edges {
+        cursor
+        node {
+          ...Collection
+        }
       }
       pageInfo {
         hasNextPage

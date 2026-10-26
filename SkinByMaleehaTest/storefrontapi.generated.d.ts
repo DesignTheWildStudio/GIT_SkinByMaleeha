@@ -380,6 +380,94 @@ export type SbmShopCategoriesQuery = {
   products: {nodes: Array<Pick<StorefrontAPI.Product, 'productType'>>};
 };
 
+export type SbmShopCardsQueryVariables = StorefrontAPI.Exact<{
+  ids:
+    | Array<StorefrontAPI.Scalars['ID']['input']>
+    | StorefrontAPI.Scalars['ID']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type SbmShopCardsQuery = {
+  nodes: Array<
+    StorefrontAPI.Maybe<
+      | {
+          __typename:
+            | 'AppliedGiftCard'
+            | 'Article'
+            | 'Blog'
+            | 'Cart'
+            | 'CartLine'
+            | 'Collection'
+            | 'Comment'
+            | 'Company'
+            | 'CompanyContact'
+            | 'CompanyLocation'
+            | 'ComponentizableCartLine'
+            | 'ExternalVideo'
+            | 'GenericFile'
+            | 'Location'
+            | 'MailingAddress'
+            | 'Market'
+            | 'MediaImage'
+            | 'MediaPresentation'
+            | 'Menu'
+            | 'MenuItem';
+        }
+      | {
+          __typename:
+            | 'Metafield'
+            | 'Metaobject'
+            | 'Model3d'
+            | 'Order'
+            | 'Page'
+            | 'ProductOption'
+            | 'ProductOptionValue'
+            | 'ProductVariant'
+            | 'Shop'
+            | 'ShopPayInstallmentsFinancingPlan'
+            | 'ShopPayInstallmentsFinancingPlanTerm'
+            | 'ShopPayInstallmentsProductVariantPricing'
+            | 'ShopPolicy'
+            | 'TaxonomyCategory'
+            | 'UrlRedirect'
+            | 'Video';
+        }
+      | ({__typename: 'Product'} & Pick<
+          StorefrontAPI.Product,
+          | 'id'
+          | 'handle'
+          | 'title'
+          | 'productType'
+          | 'description'
+          | 'availableForSale'
+        > & {
+            featuredImage?: StorefrontAPI.Maybe<
+              Pick<
+                StorefrontAPI.Image,
+                'id' | 'url' | 'altText' | 'width' | 'height'
+              >
+            >;
+            selectedOrFirstAvailableVariant?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.ProductVariant, 'id' | 'availableForSale'> & {
+                price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
+              }
+            >;
+            typeLabel?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.Metafield, 'value'>
+            >;
+            claim?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+            size?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+            badgeTone?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.Metafield, 'value'>
+            >;
+            glyph?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+            tone?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+          })
+    >
+  >;
+};
+
 export type SbmHomeQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -572,6 +660,11 @@ export type BlogsQuery = {
   };
 };
 
+export type SbmCollectionInfoFragment = Pick<
+  StorefrontAPI.Collection,
+  'id' | 'handle' | 'title' | 'description'
+> & {seo: Pick<StorefrontAPI.Seo, 'title' | 'description'>};
+
 export type CollectionQueryVariables = StorefrontAPI.Exact<{
   handle: StorefrontAPI.Scalars['String']['input'];
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
@@ -584,9 +677,6 @@ export type CollectionQueryVariables = StorefrontAPI.Exact<{
   endCursor?: StorefrontAPI.InputMaybe<
     StorefrontAPI.Scalars['String']['input']
   >;
-  filters?: StorefrontAPI.InputMaybe<
-    Array<StorefrontAPI.ProductFilter> | StorefrontAPI.ProductFilter
-  >;
   sortKey?: StorefrontAPI.InputMaybe<StorefrontAPI.ProductCollectionSortKeys>;
   reverse?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Boolean']['input']>;
 }>;
@@ -597,7 +687,6 @@ export type CollectionQuery = {
       StorefrontAPI.Collection,
       'id' | 'handle' | 'title' | 'description'
     > & {
-      seo: Pick<StorefrontAPI.Seo, 'title' | 'description'>;
       products: {
         nodes: Array<
           Pick<
@@ -637,6 +726,34 @@ export type CollectionQuery = {
           'hasPreviousPage' | 'hasNextPage' | 'endCursor' | 'startCursor'
         >;
       };
+      seo: Pick<StorefrontAPI.Seo, 'title' | 'description'>;
+    }
+  >;
+};
+
+export type CollectionScanQueryVariables = StorefrontAPI.Exact<{
+  handle: StorefrontAPI.Scalars['String']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+  after?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
+  filters?: StorefrontAPI.InputMaybe<
+    Array<StorefrontAPI.ProductFilter> | StorefrontAPI.ProductFilter
+  >;
+  sortKey?: StorefrontAPI.InputMaybe<StorefrontAPI.ProductCollectionSortKeys>;
+  reverse?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Boolean']['input']>;
+}>;
+
+export type CollectionScanQuery = {
+  collection?: StorefrontAPI.Maybe<
+    Pick<
+      StorefrontAPI.Collection,
+      'id' | 'handle' | 'title' | 'description'
+    > & {
+      products: {
+        nodes: Array<Pick<StorefrontAPI.Product, 'id' | 'productType'>>;
+        pageInfo: Pick<StorefrontAPI.PageInfo, 'hasNextPage' | 'endCursor'>;
+      };
+      seo: Pick<StorefrontAPI.Seo, 'title' | 'description'>;
     }
   >;
 };
@@ -672,26 +789,28 @@ export type StoreCollectionsQueryVariables = StorefrontAPI.Exact<{
 
 export type StoreCollectionsQuery = {
   collections: {
-    nodes: Array<
-      Pick<
-        StorefrontAPI.Collection,
-        'id' | 'title' | 'handle' | 'description'
-      > & {
-        image?: StorefrontAPI.Maybe<
-          Pick<
-            StorefrontAPI.Image,
-            'id' | 'url' | 'altText' | 'width' | 'height'
-          >
-        >;
-        products: {
-          nodes: Array<{
-            featuredImage?: StorefrontAPI.Maybe<
-              Pick<
-                StorefrontAPI.Image,
-                'id' | 'url' | 'altText' | 'width' | 'height'
-              >
-            >;
-          }>;
+    edges: Array<
+      Pick<StorefrontAPI.CollectionEdge, 'cursor'> & {
+        node: Pick<
+          StorefrontAPI.Collection,
+          'id' | 'title' | 'handle' | 'description'
+        > & {
+          image?: StorefrontAPI.Maybe<
+            Pick<
+              StorefrontAPI.Image,
+              'id' | 'url' | 'altText' | 'width' | 'height'
+            >
+          >;
+          products: {
+            nodes: Array<{
+              featuredImage?: StorefrontAPI.Maybe<
+                Pick<
+                  StorefrontAPI.Image,
+                  'id' | 'url' | 'altText' | 'width' | 'height'
+                >
+              >;
+            }>;
+          };
         };
       }
     >;
@@ -713,7 +832,6 @@ export type CatalogQueryVariables = StorefrontAPI.Exact<{
   endCursor?: StorefrontAPI.InputMaybe<
     StorefrontAPI.Scalars['String']['input']
   >;
-  query?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
   sortKey?: StorefrontAPI.InputMaybe<StorefrontAPI.ProductSortKeys>;
   reverse?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Boolean']['input']>;
 }>;
@@ -753,6 +871,22 @@ export type CatalogQuery = {
       StorefrontAPI.PageInfo,
       'hasPreviousPage' | 'hasNextPage' | 'startCursor' | 'endCursor'
     >;
+  };
+};
+
+export type CatalogScanQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+  after?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
+  query?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['String']['input']>;
+  sortKey?: StorefrontAPI.InputMaybe<StorefrontAPI.ProductSortKeys>;
+  reverse?: StorefrontAPI.InputMaybe<StorefrontAPI.Scalars['Boolean']['input']>;
+}>;
+
+export type CatalogScanQuery = {
+  products: {
+    nodes: Array<Pick<StorefrontAPI.Product, 'id' | 'productType'>>;
+    pageInfo: Pick<StorefrontAPI.PageInfo, 'hasNextPage' | 'endCursor'>;
   };
 };
 
@@ -1342,6 +1476,10 @@ interface GeneratedQueryTypes {
     return: SbmShopCategoriesQuery;
     variables: SbmShopCategoriesQueryVariables;
   };
+  '#graphql\n  query SbmShopCards($ids: [ID!]!, $country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    nodes(ids: $ids) {\n      __typename\n      ...SbmProductCard\n    }\n  }\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
+    return: SbmShopCardsQuery;
+    variables: SbmShopCardsQueryVariables;
+  };
   '#graphql\n  query SbmHome(\n    $country: CountryCode\n    $language: LanguageCode\n    $rangeHandle: String!\n    $featureHandle: String!\n  ) @inContext(country: $country, language: $language) {\n    range: collection(handle: $rangeHandle) {\n      products(first: 8) {\n        nodes {\n          ...SbmProductCard\n        }\n      }\n    }\n    centella: product(handle: $featureHandle) {\n      ...SbmProductCard\n    }\n  }\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
     return: SbmHomeQuery;
     variables: SbmHomeQueryVariables;
@@ -1358,17 +1496,25 @@ interface GeneratedQueryTypes {
     return: BlogsQuery;
     variables: BlogsQueryVariables;
   };
-  '#graphql\n  query Collection(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int\n    $last: Int\n    $startCursor: String\n    $endCursor: String\n    $filters: [ProductFilter!]\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      id\n      handle\n      title\n      description\n      seo {\n        title\n        description\n      }\n      products(\n        first: $first\n        last: $last\n        before: $startCursor\n        after: $endCursor\n        filters: $filters\n        sortKey: $sortKey\n        reverse: $reverse\n      ) {\n        nodes {\n          ...SbmProductCard\n        }\n        pageInfo {\n          hasPreviousPage\n          hasNextPage\n          endCursor\n          startCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query Collection(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int\n    $last: Int\n    $startCursor: String\n    $endCursor: String\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      ...SbmCollectionInfo\n      products(\n        first: $first\n        last: $last\n        before: $startCursor\n        after: $endCursor\n        sortKey: $sortKey\n        reverse: $reverse\n      ) {\n        nodes {\n          ...SbmProductCard\n        }\n        pageInfo {\n          hasPreviousPage\n          hasNextPage\n          endCursor\n          startCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment SbmCollectionInfo on Collection {\n    id\n    handle\n    title\n    description\n    seo {\n      title\n      description\n    }\n  }\n\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
     return: CollectionQuery;
     variables: CollectionQueryVariables;
   };
-  '#graphql\n  fragment Collection on Collection {\n    id\n    title\n    handle\n    description\n    image {\n      id\n      url\n      altText\n      width\n      height\n    }\n    products(first: 1) {\n      nodes {\n        featuredImage {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n    }\n  }\n  query StoreCollections(\n    $country: CountryCode\n    $endCursor: String\n    $first: Int\n    $language: LanguageCode\n    $last: Int\n    $startCursor: String\n  ) @inContext(country: $country, language: $language) {\n    collections(\n      first: $first,\n      last: $last,\n      before: $startCursor,\n      after: $endCursor\n    ) {\n      nodes {\n        ...Collection\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n': {
+  '#graphql\n  query CollectionScan(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n    $after: String\n    $filters: [ProductFilter!]\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      ...SbmCollectionInfo\n      products(\n        first: 250\n        after: $after\n        filters: $filters\n        sortKey: $sortKey\n        reverse: $reverse\n      ) {\n        nodes {\n          id\n          productType\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment SbmCollectionInfo on Collection {\n    id\n    handle\n    title\n    description\n    seo {\n      title\n      description\n    }\n  }\n\n': {
+    return: CollectionScanQuery;
+    variables: CollectionScanQueryVariables;
+  };
+  '#graphql\n  fragment Collection on Collection {\n    id\n    title\n    handle\n    description\n    image {\n      id\n      url\n      altText\n      width\n      height\n    }\n    products(first: 1) {\n      nodes {\n        featuredImage {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n    }\n  }\n  query StoreCollections(\n    $country: CountryCode\n    $endCursor: String\n    $first: Int\n    $language: LanguageCode\n    $last: Int\n    $startCursor: String\n  ) @inContext(country: $country, language: $language) {\n    collections(\n      first: $first,\n      last: $last,\n      before: $startCursor,\n      after: $endCursor\n    ) {\n      edges {\n        cursor\n        node {\n          ...Collection\n        }\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n': {
     return: StoreCollectionsQuery;
     variables: StoreCollectionsQueryVariables;
   };
-  '#graphql\n  query Catalog(\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int\n    $last: Int\n    $startCursor: String\n    $endCursor: String\n    $query: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    products(\n      first: $first\n      last: $last\n      before: $startCursor\n      after: $endCursor\n      query: $query\n      sortKey: $sortKey\n      reverse: $reverse\n    ) {\n      nodes {\n        ...SbmProductCard\n      }\n      pageInfo {\n        hasPreviousPage\n        hasNextPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query Catalog(\n    $country: CountryCode\n    $language: LanguageCode\n    $first: Int\n    $last: Int\n    $startCursor: String\n    $endCursor: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    products(\n      first: $first\n      last: $last\n      before: $startCursor\n      after: $endCursor\n      sortKey: $sortKey\n      reverse: $reverse\n    ) {\n      nodes {\n        ...SbmProductCard\n      }\n      pageInfo {\n        hasPreviousPage\n        hasNextPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment SbmProductCard on Product {\n    id\n    handle\n    title\n    productType\n    description\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    selectedOrFirstAvailableVariant {\n      id\n      availableForSale\n      price {\n        amount\n        currencyCode\n      }\n    }\n    typeLabel: metafield(namespace: "custom", key: "type_label") {\n      value\n    }\n    claim: metafield(namespace: "custom", key: "claim") {\n      value\n    }\n    size: metafield(namespace: "custom", key: "size") {\n      value\n    }\n    badgeTone: metafield(namespace: "custom", key: "badge_tone") {\n      value\n    }\n    glyph: metafield(namespace: "custom", key: "glyph") {\n      value\n    }\n    tone: metafield(namespace: "custom", key: "tone") {\n      value\n    }\n  }\n\n': {
     return: CatalogQuery;
     variables: CatalogQueryVariables;
+  };
+  '#graphql\n  query CatalogScan(\n    $country: CountryCode\n    $language: LanguageCode\n    $after: String\n    $query: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n  ) @inContext(country: $country, language: $language) {\n    products(first: 250, after: $after, query: $query, sortKey: $sortKey, reverse: $reverse) {\n      nodes {\n        id\n        productType\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n': {
+    return: CatalogScanQuery;
+    variables: CatalogScanQueryVariables;
   };
   '#graphql\n  query Page(\n    $language: LanguageCode,\n    $country: CountryCode,\n    $handle: String!\n  )\n  @inContext(language: $language, country: $country) {\n    page(handle: $handle) {\n      handle\n      id\n      title\n      body\n      seo {\n        description\n        title\n      }\n    }\n  }\n': {
     return: PageQuery;

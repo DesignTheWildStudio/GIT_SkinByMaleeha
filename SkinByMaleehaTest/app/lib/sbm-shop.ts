@@ -1,9 +1,13 @@
-import type {Storefront} from '@shopify/hydrogen';
+import {getPaginationVariables, type Storefront} from '@shopify/hydrogen';
+import type {SbmProductCardFragment} from 'storefrontapi.generated';
+import {SBM_PRODUCT_CARD_FRAGMENT} from '~/lib/sbm-product';
 
 /**
  * Shop / collection listing helpers. Category and sort live in the URL
  * (`?category=Sun+care&sort=price-desc`) so filtered pages can be linked and shared.
  */
+
+export const PAGE_BY = 12;
 
 export const SORT_OPTIONS = [
   {value: 'featured', label: 'Featured'},
@@ -78,6 +82,104 @@ export async function loadCategories(storefront: Storefront): Promise<string[]> 
   return [...seen];
 }
 
+type PaginationVariables = ReturnType<typeof getPaginationVariables>;
+
+/** A filtered list pages by offset (see pageOf); its cursors are plain numbers. */
+const OFFSET_CURSOR = /^\d+$/;
+
+/**
+ * Pagination variables for a listing. Unfiltered lists page with Shopify's cursors; an offset
+ * cursor left over from a filtered list would be rejected by Shopify, so that list starts over.
+ */
+export function shopPagination(request: Request, category: string | null): PaginationVariables {
+  const variables = getPaginationVariables(request, {pageBy: PAGE_BY});
+  const cursor = 'last' in variables ? variables.startCursor : variables.endCursor;
+  return !category && cursor && OFFSET_CURSOR.test(cursor)
+    ? {first: PAGE_BY, endCursor: null}
+    : variables;
+}
+
+type ScanPage = {
+  nodes: Array<{id: string; productType: string}>;
+  pageInfo: {hasNextPage: boolean; endCursor?: string | null};
+};
+
+/** At most 4 requests of 250 products are scanned for one filtered listing. */
+const SCAN_PAGES = 4;
+
+/**
+ * One page of a category, filtered *before* paginating. Shopify's own narrowing is loose:
+ * `product_type:` search also matches partial words, and collection `productType` filters
+ * only apply once that filter is enabled in Search & Discovery. So the candidates are scanned
+ * (ids and types only, from `first`, then `fetchNext(endCursor)`), the exact matches cut into
+ * a page, and only that page's cards are loaded. Counts, "Load more" and the empty state are exact.
+ */
+export async function loadCategoryPage(
+  storefront: Storefront,
+  {
+    category,
+    pagination,
+    first,
+    fetchNext,
+  }: {
+    category: string;
+    pagination: PaginationVariables;
+    first: ScanPage;
+    fetchNext: (after: string) => Promise<ScanPage | null | undefined>;
+  },
+) {
+  const ids: string[] = [];
+  let scan: ScanPage | null | undefined = first;
+  for (let fetched = 1; scan; fetched++) {
+    for (const product of scan.nodes) {
+      if (inCategory(product, category)) ids.push(product.id);
+    }
+    const {hasNextPage, endCursor}: ScanPage['pageInfo'] = scan.pageInfo;
+    scan = hasNextPage && endCursor && fetched < SCAN_PAGES ? await fetchNext(endCursor) : null;
+  }
+
+  const {items, pageInfo} = pageOf(ids, pagination);
+  return {nodes: await loadProductCards(storefront, items), pageInfo};
+}
+
+/** Cuts the page Hydrogen's pagination variables ask for out of a complete list; cursors are offsets. */
+function pageOf<T>(list: T[], pagination: PaginationVariables) {
+  const offset = (cursor: string | null) =>
+    cursor && OFFSET_CURSOR.test(cursor) ? Number(cursor) : null;
+  let start: number;
+  let end: number;
+  if ('last' in pagination) {
+    end = Math.min(offset(pagination.startCursor) ?? list.length, list.length);
+    start = Math.max(0, end - pagination.last);
+  } else {
+    const after = offset(pagination.endCursor);
+    start = Math.min(after === null ? 0 : after + 1, list.length);
+    end = Math.min(start + pagination.first, list.length);
+  }
+  return {
+    items: list.slice(start, end),
+    pageInfo: {
+      hasPreviousPage: start > 0,
+      hasNextPage: end < list.length,
+      startCursor: start < end ? String(start) : null,
+      endCursor: start < end ? String(end - 1) : null,
+    },
+  };
+}
+
+async function loadProductCards(
+  storefront: Storefront,
+  ids: string[],
+): Promise<SbmProductCardFragment[]> {
+  if (!ids.length) return [];
+  const {nodes} = await storefront.query(SHOP_CARDS_QUERY, {variables: {ids}});
+  // `nodes` keeps the order of `ids`; a product unpublished since the scan comes back null.
+  return nodes.filter(
+    (node): node is Extract<typeof node, {__typename: 'Product'}> =>
+      node?.__typename === 'Product',
+  );
+}
+
 /**
  * Splits a title so one word can be set in the italic accent:
  * "The Centella Collection" → ["The ", "Centella", " Collection"], "Face Oils" → ["Face ", "Oils", ""].
@@ -100,4 +202,15 @@ const SHOP_CATEGORIES_QUERY = `#graphql
       }
     }
   }
+` as const;
+
+const SHOP_CARDS_QUERY = `#graphql
+  query SbmShopCards($ids: [ID!]!, $country: CountryCode, $language: LanguageCode)
+  @inContext(country: $country, language: $language) {
+    nodes(ids: $ids) {
+      __typename
+      ...SbmProductCard
+    }
+  }
+  ${SBM_PRODUCT_CARD_FRAGMENT}
 ` as const;

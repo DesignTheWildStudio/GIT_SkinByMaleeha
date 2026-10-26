@@ -9,7 +9,7 @@ const navStyle: React.CSSProperties = {
 /**
  * <PaginatedResourceSection> encapsulates the previous and next pagination behaviors throughout your application.
  * `header` renders above the list with the nodes loaded so far (e.g. a result count);
- * `empty` replaces the list when there are no nodes.
+ * `empty` replaces the list when there are no nodes and no pages to load either way.
  */
 export function PaginatedResourceSection<NodesType>({
   connection,
@@ -49,7 +49,7 @@ export function PaginatedResourceSection<NodesType>({
                 </PreviousLink>
               </div>
             ) : null}
-            {nodes.length === 0 && empty ? (
+            {nodes.length === 0 && !hasPreviousPage && !hasNextPage && empty ? (
               empty
             ) : resourcesClassName ? (
               <div
