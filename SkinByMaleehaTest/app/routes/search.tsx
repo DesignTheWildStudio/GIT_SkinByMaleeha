@@ -3,6 +3,9 @@ import type {Route} from './+types/search';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
 import {SearchForm} from '~/components/SearchForm';
 import {SearchResults} from '~/components/SearchResults';
+import {FormMessage} from '~/components/sbm/FormFields';
+import {PageHeader} from '~/components/sbm/PageHeader';
+import {SBM_PRODUCT_CARD_FRAGMENT} from '~/lib/sbm-product';
 import {
   type RegularSearchReturn,
   type PredictiveSearchReturn,
@@ -12,10 +15,14 @@ import type {
   RegularSearchQuery,
   PredictiveSearchQuery,
 } from 'storefrontapi.generated';
+import styles from '~/styles/sbm-pages.css?url';
 
-export const meta: Route.MetaFunction = () => {
-  return [{title: `Hydrogen | Search`}];
+export const meta: Route.MetaFunction = ({data}) => {
+  const term = data && data.type === 'regular' ? data.term : '';
+  return [{title: term ? `Search: ${term} | skinbymaleeha` : 'Search | skinbymaleeha'}];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader({request, context}: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -40,40 +47,54 @@ export default function SearchPage() {
   const {type, term, result, error} = useLoaderData<typeof loader>();
   if (type === 'predictive') return null;
 
+  const hasResults = Boolean(term && result?.total);
+
   return (
-    <div className="search">
-      <h1>Search</h1>
-      <SearchForm>
-        {({inputRef}) => (
-          <>
-            <input
-              defaultValue={term}
-              name="q"
-              placeholder="Search…"
-              ref={inputRef}
-              type="search"
-            />
-            &nbsp;
-            <button type="submit">Search</button>
-          </>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap">
+        <PageHeader
+          eyebrow="Search"
+          title={
+            !term ? (
+              <>
+                Search the <em>range</em>
+              </>
+            ) : hasResults ? (
+              <>
+                Results for <em>{term}</em>
+              </>
+            ) : (
+              <>
+                No results for <em>{term}</em>
+              </>
+            )
+          }
+          lede={
+            term ? undefined : 'Find a formula by name, ingredient or skin concern.'
+          }
+        />
+        <SearchForm defaultValue={term} />
+        {error ? (
+          <FormMessage className="sf-search-error">{error}</FormMessage>
+        ) : null}
+        {!term ? (
+          <SearchResults.Suggestions />
+        ) : !hasResults ? (
+          <SearchResults.Empty term={term} />
+        ) : (
+          <SearchResults result={result} term={term}>
+            {({articles, pages, products, term}) => (
+              <>
+                <SearchResults.Products products={products} term={term} />
+                <SearchResults.Pages pages={pages} term={term} />
+                <SearchResults.Articles articles={articles} term={term} />
+              </>
+            )}
+          </SearchResults>
         )}
-      </SearchForm>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {!term || !result?.total ? (
-        <SearchResults.Empty />
-      ) : (
-        <SearchResults result={result} term={term}>
-          {({articles, pages, products, term}) => (
-            <div>
-              <SearchResults.Products products={products} term={term} />
-              <SearchResults.Pages pages={pages} term={term} />
-              <SearchResults.Articles articles={articles} term={term} />
-            </div>
-          )}
-        </SearchResults>
-      )}
-      <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
-    </div>
+        <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
+      </div>
+    </section>
   );
 }
 
@@ -84,41 +105,8 @@ export default function SearchPage() {
 const SEARCH_PRODUCT_FRAGMENT = `#graphql
   fragment SearchProduct on Product {
     __typename
-    handle
-    id
-    publishedAt
-    title
     trackingParameters
-    vendor
-    selectedOrFirstAvailableVariant(
-      selectedOptions: []
-      ignoreUnknownOptions: true
-      caseInsensitiveMatch: true
-    ) {
-      id
-      image {
-        url
-        altText
-        width
-        height
-      }
-      price {
-        amount
-        currencyCode
-      }
-      compareAtPrice {
-        amount
-        currencyCode
-      }
-      selectedOptions {
-        name
-        value
-      }
-      product {
-        handle
-        title
-      }
-    }
+    ...SbmProductCard
   }
 ` as const;
 
@@ -139,6 +127,9 @@ const SEARCH_ARTICLE_FRAGMENT = `#graphql
     id
     title
     trackingParameters
+    blog {
+      handle
+    }
   }
 ` as const;
 
@@ -205,6 +196,7 @@ export const SEARCH_QUERY = `#graphql
     }
   }
   ${SEARCH_PRODUCT_FRAGMENT}
+  ${SBM_PRODUCT_CARD_FRAGMENT}
   ${SEARCH_PAGE_FRAGMENT}
   ${SEARCH_ARTICLE_FRAGMENT}
   ${PAGE_INFO_FRAGMENT}

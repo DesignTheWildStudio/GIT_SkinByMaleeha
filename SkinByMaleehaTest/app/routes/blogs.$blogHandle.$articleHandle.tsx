@@ -2,10 +2,22 @@ import {useLoaderData} from 'react-router';
 import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
 import {Image} from '@shopify/hydrogen';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {Button} from '~/components/sbm/Controls';
+import {PageCrumbs, RichText, formatDate} from '~/components/sbm/PageHeader';
+import {PageError} from '~/components/sbm/PageError';
+import styles from '~/styles/sbm-pages.css?url';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.article.title ?? ''} article`}];
+  const article = data?.article;
+  if (!article) return [{title: 'Journal | skinbymaleeha'}];
+  const description = article.seo?.description;
+  return [
+    {title: `${article.seo?.title || article.title} | skinbymaleeha`},
+    ...(description ? [{name: 'description', content: description}] : []),
+  ];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
@@ -53,7 +65,7 @@ async function loadCriticalData({context, request, params}: Route.LoaderArgs) {
 
   const article = blog.articleByHandle;
 
-  return {article};
+  return {article, blog: {handle: blog.handle, title: blog.title}};
 }
 
 /**
@@ -66,32 +78,57 @@ function loadDeferredData({context}: Route.LoaderArgs) {
 }
 
 export default function Article() {
-  const {article} = useLoaderData<typeof loader>();
+  const {article, blog} = useLoaderData<typeof loader>();
   const {title, image, contentHtml, author} = article;
-
-  const publishedDate = new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(article.publishedAt));
+  const blogUrl = `/blogs/${blog.handle}`;
 
   return (
-    <div className="article">
-      <h1>
-        {title}
-        <div>
-          <time dateTime={article.publishedAt}>{publishedDate}</time> &middot;{' '}
-          <address>{author?.name}</address>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap">
+        <div className="sf-doc">
+          <header className="sf-doc__head">
+            <PageCrumbs
+              items={[
+                {label: 'Journal', to: '/blogs'},
+                {label: blog.title, to: blogUrl},
+                {label: title},
+              ]}
+            />
+            <p className="sbm-eyebrow">
+              <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+            </p>
+            <h1 className="sbm-h1">{title}</h1>
+            {author?.name ? (
+              <p className="sf-doc__meta">
+                <span>By {author.name}</span>
+              </p>
+            ) : null}
+            <Button variant="link" iconLeft="arrow-left" to={blogUrl}>
+              Back to {blog.title}
+            </Button>
+          </header>
+          <div className="sf-doc__body">
+            {image ? (
+              <div className="sf-article__hero">
+                <Image
+                  data={image}
+                  alt={image.altText || title}
+                  aspectRatio="16/9"
+                  sizes="(min-width: 961px) 680px, 100vw"
+                  loading="eager"
+                />
+              </div>
+            ) : null}
+            <RichText html={contentHtml} />
+          </div>
         </div>
-      </h1>
-
-      {image && <Image data={image} sizes="90vw" loading="eager" />}
-      <div
-        dangerouslySetInnerHTML={{__html: contentHtml}}
-        className="article"
-      />
-    </div>
+      </div>
+    </section>
   );
+}
+
+export function ErrorBoundary() {
+  return <PageError />;
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/blog#field-blog-articlebyhandle
@@ -104,6 +141,7 @@ const ARTICLE_QUERY = `#graphql
   ) @inContext(language: $language, country: $country) {
     blog(handle: $blogHandle) {
       handle
+      title
       articleByHandle(handle: $articleHandle) {
         handle
         title

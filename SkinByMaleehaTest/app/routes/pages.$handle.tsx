@@ -1,10 +1,22 @@
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/pages.$handle';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {Button} from '~/components/sbm/Controls';
+import {PageEmpty, RichText, accentTitle} from '~/components/sbm/PageHeader';
+import {PageError} from '~/components/sbm/PageError';
+import styles from '~/styles/sbm-pages.css?url';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.page.title ?? ''}`}];
+  const page = data?.page;
+  if (!page) return [{title: 'Page not found | skinbymaleeha'}];
+  const description = page.seo?.description;
+  return [
+    {title: `${page.seo?.title || page.title} | skinbymaleeha`},
+    ...(description ? [{name: 'description', content: description}] : []),
+  ];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
@@ -58,13 +70,38 @@ export default function Page() {
   const {page} = useLoaderData<typeof loader>();
 
   return (
-    <div className="page">
-      <header>
-        <h1>{page.title}</h1>
-      </header>
-      <main dangerouslySetInnerHTML={{__html: page.body}} />
-    </div>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap sf-doc">
+        <header className="sf-doc__head">
+          <p className="sbm-eyebrow">skinbymaleeha</p>
+          <h1 className="sbm-display-m">{accentTitle(page.title)}</h1>
+        </header>
+        <div className="sf-doc__body">
+          {page.body.trim() ? (
+            <RichText html={page.body} />
+          ) : (
+            <PageEmpty
+              title="We’re still writing this page."
+              actions={
+                <>
+                  <Button to="/collections/all">Shop all skincare</Button>
+                  <Button variant="outline" to="/">
+                    Back to home
+                  </Button>
+                </>
+              }
+            >
+              Check back soon — in the meantime, the full range is a click away.
+            </PageEmpty>
+          )}
+        </div>
+      </div>
+    </section>
   );
+}
+
+export function ErrorBoundary() {
+  return <PageError />;
 }
 
 const PAGE_QUERY = `#graphql

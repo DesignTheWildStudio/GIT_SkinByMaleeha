@@ -4,10 +4,23 @@ import {Image, getPaginationVariables} from '@shopify/hydrogen';
 import type {ArticleItemFragment} from 'storefrontapi.generated';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {Emblem} from '~/components/sbm/Brand';
+import {Button} from '~/components/sbm/Controls';
+import {PageEmpty, PageHeader, accentTitle, formatDate} from '~/components/sbm/PageHeader';
+import {PageError} from '~/components/sbm/PageError';
+import styles from '~/styles/sbm-pages.css?url';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.blog.title ?? ''} blog`}];
+  const blog = data?.blog;
+  if (!blog) return [{title: 'Journal | skinbymaleeha'}];
+  const description = blog.seo?.description;
+  return [
+    {title: `${blog.seo?.title || blog.title} | skinbymaleeha`},
+    ...(description ? [{name: 'description', content: description}] : []),
+  ];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
@@ -65,20 +78,36 @@ export default function Blog() {
   const {articles} = blog;
 
   return (
-    <div className="blog">
-      <h1>{blog.title}</h1>
-      <div className="blog-grid">
-        <PaginatedResourceSection<ArticleItemFragment> connection={articles}>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap">
+        <PageHeader
+          crumbs={[{label: 'Journal', to: '/blogs'}, {label: blog.title}]}
+          eyebrow="Journal"
+          title={accentTitle(blog.title)}
+          lede={blog.seo?.description || undefined}
+        />
+        <PaginatedResourceSection<ArticleItemFragment>
+          connection={articles}
+          resourcesClassName="sf-articles"
+          empty={
+            <PageEmpty
+              title="No stories yet."
+              actions={<Button to="/collections/all">Shop all skincare</Button>}
+            >
+              Skincare notes from Dr Maleeha are on their way — check back soon.
+            </PageEmpty>
+          }
+        >
           {({node: article, index}) => (
             <ArticleItem
               article={article}
               key={article.id}
-              loading={index < 2 ? 'eager' : 'lazy'}
+              loading={index < 3 ? 'eager' : 'lazy'}
             />
           )}
         </PaginatedResourceSection>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -89,30 +118,40 @@ function ArticleItem({
   article: ArticleItemFragment;
   loading?: HTMLImageElement['loading'];
 }) {
-  const publishedAt = new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(article.publishedAt!));
+  const to = `/blogs/${article.blog.handle}/${article.handle}`;
   return (
-    <div className="blog-article" key={article.id}>
-      <Link to={`/blogs/${article.blog.handle}/${article.handle}`}>
-        {article.image && (
-          <div className="blog-article-image">
-            <Image
-              alt={article.image.altText || article.title}
-              aspectRatio="3/2"
-              data={article.image}
-              loading={loading}
-              sizes="(min-width: 768px) 50vw, 100vw"
-            />
-          </div>
+    <article className="sf-acard">
+      <Link to={to} prefetch="intent" className="sf-acard__media" aria-label={article.title}>
+        {article.image ? (
+          <Image
+            alt={article.image.altText || article.title}
+            aspectRatio="3/2"
+            data={article.image}
+            loading={loading}
+            sizes="(min-width: 961px) 33vw, (min-width: 601px) 50vw, 100vw"
+          />
+        ) : (
+          <Emblem size={44} alt="" />
         )}
-        <h3>{article.title}</h3>
-        <small>{publishedAt}</small>
       </Link>
-    </div>
+      <p className="sbm-eyebrow sf-acard__date">
+        <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+      </p>
+      <h2 className="sf-acard__title">
+        <Link to={to} prefetch="intent">
+          {article.title}
+        </Link>
+      </h2>
+      {article.excerpt ? <p className="sf-acard__excerpt">{article.excerpt}</p> : null}
+      <Button variant="link" iconRight="arrow-right" to={to}>
+        Read more
+      </Button>
+    </article>
   );
+}
+
+export function ErrorBoundary() {
+  return <PageError />;
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/blog
@@ -144,7 +183,6 @@ const BLOGS_QUERY = `#graphql
         pageInfo {
           hasPreviousPage
           hasNextPage
-          hasNextPage
           endCursor
           startCursor
         }
@@ -156,7 +194,7 @@ const BLOGS_QUERY = `#graphql
     author: authorV2 {
       name
     }
-    contentHtml
+    excerpt
     handle
     id
     image {

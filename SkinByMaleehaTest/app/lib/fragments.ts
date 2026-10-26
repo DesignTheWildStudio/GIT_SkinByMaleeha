@@ -47,6 +47,13 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          featuredImage {
+            id
+            url
+            altText
+            width
+            height
+          }
           size: metafield(namespace: "custom", key: "size") {
             value
           }
@@ -108,6 +115,13 @@ export const CART_QUERY_FRAGMENT = `#graphql
           title
           id
           vendor
+          featuredImage {
+            id
+            url
+            altText
+            width
+            height
+          }
           size: metafield(namespace: "custom", key: "size") {
             value
           }

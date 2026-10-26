@@ -1,12 +1,12 @@
-import {
-  data as remixData,
-  Form,
-  NavLink,
-  Outlet,
-  useLoaderData,
-} from 'react-router';
+import {data as remixData, Outlet, useLoaderData} from 'react-router';
 import type {Route} from './+types/account';
 import {CUSTOMER_DETAILS_QUERY} from '~/graphql/customer-account/CustomerDetailsQuery';
+import {AccountNav} from '~/components/sbm/PageAccount';
+import {PageError} from '~/components/sbm/PageError';
+import {PageHeader} from '~/components/sbm/PageHeader';
+import styles from '~/styles/sbm-pages.css?url';
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export function shouldRevalidate() {
   return true;
@@ -37,61 +37,30 @@ export async function loader({context}: Route.LoaderArgs) {
 export default function AccountLayout() {
   const {customer} = useLoaderData<typeof loader>();
 
-  const heading = customer
-    ? customer.firstName
-      ? `Welcome, ${customer.firstName}`
-      : `Welcome to your account.`
-    : 'Account Details';
-
   return (
-    <div className="account">
-      <h1>{heading}</h1>
-      <br />
-      <AccountMenu />
-      <br />
-      <br />
-      <Outlet context={{customer}} />
-    </div>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap">
+        <PageHeader
+          eyebrow="Your account"
+          title={
+            customer.firstName ? (
+              <>
+                Welcome, <em>{customer.firstName}</em>
+              </>
+            ) : (
+              <>
+                Your <em>account</em>
+              </>
+            )
+          }
+        />
+        <AccountNav />
+        <Outlet context={{customer}} />
+      </div>
+    </section>
   );
 }
 
-function AccountMenu() {
-  function isActiveStyle({
-    isActive,
-    isPending,
-  }: {
-    isActive: boolean;
-    isPending: boolean;
-  }) {
-    return {
-      fontWeight: isActive ? 'bold' : undefined,
-      color: isPending ? 'grey' : 'black',
-    };
-  }
-
-  return (
-    <nav role="navigation">
-      <NavLink to="/account/orders" style={isActiveStyle}>
-        Orders &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/profile" style={isActiveStyle}>
-        &nbsp; Profile &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/addresses" style={isActiveStyle}>
-        &nbsp; Addresses &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <Logout />
-    </nav>
-  );
-}
-
-function Logout() {
-  return (
-    <Form className="account-logout" method="POST" action="/account/logout">
-      &nbsp;<button type="submit">Sign out</button>
-    </Form>
-  );
+export function ErrorBoundary() {
+  return <PageError />;
 }

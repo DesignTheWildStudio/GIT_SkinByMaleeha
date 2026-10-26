@@ -95,6 +95,8 @@ export function BagToast() {
 
 type AddToBagProps = {
   variantId?: string;
+  /** Variant data shown in the bag before the server confirms the add (optimistic cart line). */
+  selectedVariant?: unknown;
   available?: boolean;
   quantity?: number;
   /** Product name + pack size for the toast, e.g. "Daily Moisturiser · 50 ml". */
@@ -108,6 +110,7 @@ type AddToBagProps = {
 /** Pill button that adds a variant to the Shopify cart and confirms with the toast. */
 export function AddToBagButton({
   variantId,
+  selectedVariant,
   available = true,
   quantity = 1,
   ...props
@@ -116,7 +119,7 @@ export function AddToBagButton({
   return (
     <CartForm
       route="/cart"
-      inputs={{lines: [{merchandiseId: variantId, quantity}]}}
+      inputs={{lines: [{merchandiseId: variantId, quantity, selectedVariant}]}}
       action={CartForm.ACTIONS.LinesAdd}
     >
       {(fetcher: FetcherWithComponents<any>) => (
@@ -287,7 +290,12 @@ function BagLineItem({line, onNavigate}: {line: BagLine; onNavigate?: () => void
   const product = merchandise.product;
   const to = `/products/${product.handle}`;
   const size = product.size?.value;
-  const optionLabel = merchandise.title !== 'Default Title' ? merchandise.title : null;
+  const hasOptions = merchandise.title !== 'Default Title';
+  const optionLabel = hasOptions ? merchandise.title : null;
+  // single-variant products show the product photo (as on the cards); variants show their own
+  const image = hasOptions
+    ? (merchandise.image ?? product.featuredImage)
+    : (product.featuredImage ?? merchandise.image);
   return (
     <div className="sf-line">
       <Link
@@ -297,9 +305,7 @@ function BagLineItem({line, onNavigate}: {line: BagLine; onNavigate?: () => void
         style={{backgroundColor: toneVar(product.tone?.value)}}
         aria-label={product.title}
       >
-        {merchandise.image ? (
-          <Image data={merchandise.image} alt="" sizes="72px" aspectRatio="4/5" crop="center" />
-        ) : null}
+        {image ? <Image data={image} alt="" sizes="72px" aspectRatio="4/5" crop="center" /> : null}
       </Link>
       <div>
         <p className="sf-line__name">

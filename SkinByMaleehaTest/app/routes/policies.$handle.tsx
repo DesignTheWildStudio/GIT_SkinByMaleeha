@@ -1,6 +1,10 @@
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/policies.$handle';
 import {type Shop} from '@shopify/hydrogen/storefront-api-types';
+import {Button} from '~/components/sbm/Controls';
+import {PageCrumbs, RichText, accentTitle} from '~/components/sbm/PageHeader';
+import {PageError} from '~/components/sbm/PageError';
+import styles from '~/styles/sbm-pages.css?url';
 
 type SelectedPolicies = keyof Pick<
   Shop,
@@ -8,8 +12,12 @@ type SelectedPolicies = keyof Pick<
 >;
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.policy.title ?? ''}`}];
+  return [
+    {title: data?.policy ? `${data.policy.title} | skinbymaleeha` : 'Policy | skinbymaleeha'},
+  ];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader({params, context}: Route.LoaderArgs) {
   if (!params.handle) {
@@ -45,17 +53,26 @@ export default function Policy() {
   const {policy} = useLoaderData<typeof loader>();
 
   return (
-    <div className="policy">
-      <br />
-      <br />
-      <div>
-        <Link to="/policies">← Back to Policies</Link>
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap sf-doc">
+        <header className="sf-doc__head">
+          <PageCrumbs items={[{label: 'Policies', to: '/policies'}, {label: policy.title}]} />
+          <p className="sbm-eyebrow">Policy</p>
+          <h1 className="sbm-display-m">{accentTitle(policy.title)}</h1>
+          <Button variant="link" iconLeft="arrow-left" to="/policies">
+            All policies
+          </Button>
+        </header>
+        <div className="sf-doc__body">
+          <RichText html={policy.body} />
+        </div>
       </div>
-      <br />
-      <h1>{policy.title}</h1>
-      <div dangerouslySetInnerHTML={{__html: policy.body}} />
-    </div>
+    </section>
   );
+}
+
+export function ErrorBoundary() {
+  return <PageError />;
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/Shop

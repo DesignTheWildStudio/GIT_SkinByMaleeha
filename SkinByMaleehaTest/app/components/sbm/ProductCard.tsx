@@ -65,6 +65,7 @@ export function ProductCard({
         <div className="sbm-pcard__actions">
           <AddToBagButton
             variantId={p.variantId}
+            selectedVariant={p.optimisticVariant}
             available={p.available}
             block
             toastMessage={[p.title, p.size].filter(Boolean).join(' · ')}
@@ -121,6 +122,7 @@ export function FeatureCard({
           </Button>
           <AddToBagButton
             variantId={product.variantId}
+            selectedVariant={product.optimisticVariant}
             available={product.available}
             label="Buy Now"
             toastMessage={[product.title, product.size].filter(Boolean).join(' · ')}

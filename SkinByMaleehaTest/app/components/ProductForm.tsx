@@ -1,150 +1,137 @@
+import {useId, useState} from 'react';
 import {Link, useNavigate} from 'react-router';
-import {type MappedProductOptions} from '@shopify/hydrogen';
-import type {
-  Maybe,
-  ProductOptionValueSwatch,
-} from '@shopify/hydrogen/storefront-api-types';
-import {AddToCartButton} from './AddToCartButton';
-import {useBag} from './sbm/Bag';
+import type {MappedProductOptions} from '@shopify/hydrogen';
 import type {ProductFragment} from 'storefrontapi.generated';
+import {AddToBagButton} from './sbm/Bag';
+import {Button, QuantityStepper, QuantityStepperButton} from './sbm/Controls';
+import {Tag} from './sbm/ProductDetail';
 
+const MAX_QUANTITY = 10;
+
+/** Variant option chips (only for real variants), quantity stepper and the full-width "Add to bag". */
 export function ProductForm({
   productOptions,
   selectedVariant,
+  toastMessage,
 }: {
   productOptions: MappedProductOptions[];
   selectedVariant: ProductFragment['selectedOrFirstAvailableVariant'];
+  toastMessage: string;
 }) {
-  const navigate = useNavigate();
-  const {open} = useBag();
+  const [quantity, setQuantity] = useState(1);
   return (
-    <div className="product-form">
-      {productOptions.map((option) => {
-        // If there is only a single value in the option values, don't display the option
-        if (option.optionValues.length === 1) return null;
+    <>
+      {productOptions.map((option) =>
+        // "Default Title" products (a single value) show no picker
+        option.optionValues.length > 1 ? <ProductOption key={option.name} option={option} /> : null,
+      )}
+      <div className="sf-row sf-buy">
+        <QuantityStepper
+          value={quantity}
+          decrease={
+            <QuantityStepperButton
+              direction="decrease"
+              disabled={quantity <= 1}
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            />
+          }
+          increase={
+            <QuantityStepperButton
+              direction="increase"
+              disabled={quantity >= MAX_QUANTITY}
+              onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY, q + 1))}
+            />
+          }
+        />
+        {selectedVariant ? (
+          <AddToBagButton
+            variantId={selectedVariant.id}
+            available={selectedVariant.availableForSale}
+            quantity={quantity}
+            variant="primary"
+            size="lg"
+            block
+            toastMessage={toastMessage}
+          />
+        ) : (
+          <Button size="lg" block disabled>
+            Unavailable
+          </Button>
+        )}
+      </div>
+    </>
+  );
+}
 
-        return (
-          <div className="product-options" key={option.name}>
-            <h5>{option.name}</h5>
-            <div className="product-options-grid">
-              {option.optionValues.map((value) => {
-                const {
-                  name,
-                  handle,
-                  variantUriQuery,
-                  selected,
-                  available,
-                  exists,
-                  isDifferentProduct,
-                  swatch,
-                } = value;
-
-                if (isDifferentProduct) {
-                  // SEO
-                  // When the variant is a combined listing child product
-                  // that leads to a different url, we need to render it
-                  // as an anchor tag
-                  return (
-                    <Link
-                      className="product-options-item"
-                      key={option.name + name}
-                      prefetch="intent"
-                      preventScrollReset
-                      replace
-                      to={`/products/${handle}?${variantUriQuery}`}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
-                    >
-                      <ProductOptionSwatch swatch={swatch} name={name} />
-                    </Link>
-                  );
-                } else {
-                  // SEO
-                  // When the variant is an update to the search param,
-                  // render it as a button with javascript navigating to
-                  // the variant so that SEO bots do not index these as
-                  // duplicated links
-                  return (
-                    <button
-                      type="button"
-                      className={`product-options-item${
-                        exists && !selected ? ' link' : ''
-                      }`}
-                      key={option.name + name}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
-                      disabled={!exists}
-                      onClick={() => {
-                        if (!selected) {
-                          void navigate(`?${variantUriQuery}`, {
-                            replace: true,
-                            preventScrollReset: true,
-                          });
-                        }
-                      }}
-                    >
-                      <ProductOptionSwatch swatch={swatch} name={name} />
-                    </button>
-                  );
+function ProductOption({option}: {option: MappedProductOptions}) {
+  const navigate = useNavigate();
+  const labelId = useId();
+  return (
+    <div className="sf-option" role="group" aria-labelledby={labelId}>
+      <p id={labelId} className="sbm-label">
+        {option.name}
+      </p>
+      <div className="sf-row sf-option__values">
+        {option.optionValues.map((value) => {
+          const {name, handle, variantUriQuery, selected, available, exists, isDifferentProduct, swatch} =
+            value;
+          const content = (
+            <>
+              <OptionSwatch color={swatch?.color} image={swatch?.image?.previewImage?.url} />
+              {name}
+            </>
+          );
+          const unavailable = available ? '' : 'is-unavailable';
+          if (isDifferentProduct) {
+            // Combined-listing child products are real links (crawlable)
+            return (
+              <Link
+                key={option.name + name}
+                className={['sbm-tag', selected ? 'sbm-tag--selected' : '', unavailable]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-current={selected || undefined}
+                prefetch="intent"
+                preventScrollReset
+                replace
+                to={`/products/${handle}?${variantUriQuery}`}
+              >
+                {content}
+              </Link>
+            );
+          }
+          // Same-product variants update the search param without creating indexable links
+          return (
+            <Tag
+              key={option.name + name}
+              selected={selected}
+              disabled={!exists}
+              className={unavailable}
+              onClick={() => {
+                if (!selected) {
+                  void navigate(`?${variantUriQuery}`, {replace: true, preventScrollReset: true});
                 }
-              })}
-            </div>
-            <br />
-          </div>
-        );
-      })}
-      <AddToCartButton
-        disabled={!selectedVariant || !selectedVariant.availableForSale}
-        onClick={() => {
-          open();
-        }}
-        lines={
-          selectedVariant
-            ? [
-                {
-                  merchandiseId: selectedVariant.id,
-                  quantity: 1,
-                  selectedVariant,
-                },
-              ]
-            : []
-        }
-      >
-        {selectedVariant?.availableForSale ? 'Add to cart' : 'Sold out'}
-      </AddToCartButton>
+              }}
+            >
+              {content}
+            </Tag>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function ProductOptionSwatch({
-  swatch,
-  name,
-}: {
-  swatch?: Maybe<ProductOptionValueSwatch> | undefined;
-  name: string;
-}) {
-  const image = swatch?.image?.previewImage?.url;
-  const color = swatch?.color;
-
-  if (!image && !color) return name;
-
+function OptionSwatch({color, image}: {color?: string | null; image?: string | null}) {
+  if (!color && !image) return null;
   return (
-    <div
-      aria-label={name}
-      className="product-option-label-swatch"
+    <span
+      className="sf-option__swatch"
+      aria-hidden="true"
       style={{
-        backgroundColor: color || 'transparent',
+        backgroundColor: color || undefined,
+        backgroundImage: image ? `url(${image})` : undefined,
       }}
-    >
-      {!!image && <img src={image} alt={name} />}
-    </div>
+    />
   );
 }

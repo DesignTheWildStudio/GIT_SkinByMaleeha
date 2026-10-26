@@ -96,6 +96,22 @@ export type CardProduct = {
   price: string;
   image: SbmProductCardFragment['featuredImage'];
   variantId?: string;
+  /** Shape of a cart line's merchandise, for the optimistic bag line while adding. */
+  optimisticVariant?: {
+    id: string;
+    title: string;
+    availableForSale: boolean;
+    price: MoneyLike;
+    image: SbmProductCardFragment['featuredImage'];
+    selectedOptions: never[];
+    product: {
+      handle: string;
+      title: string;
+      featuredImage: SbmProductCardFragment['featuredImage'];
+      size: SbmProductCardFragment['size'];
+      tone: SbmProductCardFragment['tone'];
+    };
+  };
   available: boolean;
 };
 
@@ -117,6 +133,23 @@ export function toCardProduct(product: SbmProductCardFragment): CardProduct {
     price: formatPrice(variant?.price),
     image: product.featuredImage,
     variantId: variant?.id,
+    optimisticVariant: variant
+      ? {
+          id: variant.id,
+          title: 'Default Title',
+          availableForSale: variant.availableForSale,
+          price: variant.price,
+          image: product.featuredImage,
+          selectedOptions: [],
+          product: {
+            handle: product.handle,
+            title: product.title,
+            featuredImage: product.featuredImage,
+            size: product.size,
+            tone: product.tone,
+          },
+        }
+      : undefined,
     available: Boolean(variant?.availableForSale),
   };
 }

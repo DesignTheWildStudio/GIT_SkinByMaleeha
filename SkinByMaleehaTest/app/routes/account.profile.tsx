@@ -9,6 +9,9 @@ import {
   useOutletContext,
 } from 'react-router';
 import type {Route} from './+types/account.profile';
+import {Button, Input} from '~/components/sbm/Controls';
+import {FormMessage} from '~/components/sbm/FormFields';
+import {PageSectionHead} from '~/components/sbm/PageHeader';
 
 export type ActionResponse = {
   error: string | null;
@@ -16,7 +19,7 @@ export type ActionResponse = {
 };
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Profile'}];
+  return [{title: 'Profile | skinbymaleeha'}];
 };
 
 export async function loader({context}: Route.LoaderArgs) {
@@ -84,50 +87,55 @@ export default function AccountProfile() {
   const {state} = useNavigation();
   const action = useActionData<ActionResponse>();
   const customer = action?.customer ?? account?.customer;
+  const saving = state !== 'idle';
 
   return (
-    <div className="account-profile">
-      <h2>My profile</h2>
-      <br />
-      <Form method="PUT">
-        <legend>Personal information</legend>
-        <fieldset>
-          <label htmlFor="firstName">First name</label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            autoComplete="given-name"
-            placeholder="First name"
-            aria-label="First name"
-            defaultValue={customer.firstName ?? ''}
-            minLength={2}
-          />
-          <label htmlFor="lastName">Last name</label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            autoComplete="family-name"
-            placeholder="Last name"
-            aria-label="Last name"
-            defaultValue={customer.lastName ?? ''}
-            minLength={2}
-          />
-        </fieldset>
-        {action?.error ? (
-          <p>
-            <mark>
-              <small>{action.error}</small>
-            </mark>
-          </p>
-        ) : (
-          <br />
-        )}
-        <button type="submit" disabled={state !== 'idle'}>
-          {state !== 'idle' ? 'Updating' : 'Update'}
-        </button>
-      </Form>
+    <div className="sf-account__profile">
+      <PageSectionHead title="Profile" />
+      <div className="sbm-card sf-box sf-formcard">
+        <Form method="PUT">
+          <fieldset className="sf-fieldset">
+            <legend className="sf-formhead">
+              <span className="sbm-label">Personal information</span>
+              <span className="sbm-caption">
+                Your name as it appears on orders and deliveries.
+              </span>
+            </legend>
+            <div className="sf-form sf-form--stack">
+              <Input
+                label="First name"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                placeholder="First name"
+                defaultValue={customer.firstName ?? ''}
+                minLength={2}
+              />
+              <Input
+                label="Last name"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                placeholder="Last name"
+                defaultValue={customer.lastName ?? ''}
+                minLength={2}
+              />
+              {action?.error ? (
+                <FormMessage className="full">{action.error}</FormMessage>
+              ) : action?.customer && !saving ? (
+                <FormMessage tone="success" className="full">
+                  Your details have been saved.
+                </FormMessage>
+              ) : null}
+              <div className="sf-form__actions full">
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save changes'}
+                </Button>
+              </div>
+            </div>
+          </fieldset>
+        </Form>
+      </div>
     </div>
   );
 }

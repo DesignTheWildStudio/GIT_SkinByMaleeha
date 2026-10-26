@@ -1,14 +1,19 @@
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/blogs._index';
 import {getPaginationVariables} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import type {BlogsQuery} from 'storefrontapi.generated';
+import {Button} from '~/components/sbm/Controls';
+import {PageEmpty, PageLinkRow} from '~/components/sbm/PageHeader';
+import styles from '~/styles/sbm-pages.css?url';
 
 type BlogNode = BlogsQuery['blogs']['nodes'][0];
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: `Hydrogen | Blogs`}];
+  return [{title: 'Journal | skinbymaleeha'}];
 };
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
 
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
@@ -54,23 +59,40 @@ export default function Blogs() {
   const {blogs} = useLoaderData<typeof loader>();
 
   return (
-    <div className="blogs">
-      <h1>Blogs</h1>
-      <div className="blogs-grid">
-        <PaginatedResourceSection<BlogNode> connection={blogs}>
-          {({node: blog}) => (
-            <Link
-              className="blog"
-              key={blog.handle}
-              prefetch="intent"
-              to={`/blogs/${blog.handle}`}
+    <section className="sf-section sf-pageshell">
+      <div className="sf-wrap sf-doc">
+        <header className="sf-doc__head">
+          <p className="sbm-eyebrow">From the dermatologist</p>
+          <h1 className="sbm-display-m">
+            The <em>journal</em>
+          </h1>
+          <p className="sbm-body sf-pagehead__lede">
+            Skincare notes, launch news and the thinking behind each formula.
+          </p>
+        </header>
+        <div className="sf-doc__body">
+          {blogs.nodes.length ? (
+            <PaginatedResourceSection<BlogNode>
+              connection={blogs}
+              resourcesClassName="sf-linklist"
             >
-              <h2>{blog.title}</h2>
-            </Link>
+              {({node: blog}) => (
+                <div key={blog.handle}>
+                  <PageLinkRow to={`/blogs/${blog.handle}`} label={blog.title} />
+                </div>
+              )}
+            </PaginatedResourceSection>
+          ) : (
+            <PageEmpty
+              title="No stories yet."
+              actions={<Button to="/collections/all">Shop all skincare</Button>}
+            >
+              Skincare notes from Dr Maleeha are on their way.
+            </PageEmpty>
           )}
-        </PaginatedResourceSection>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 

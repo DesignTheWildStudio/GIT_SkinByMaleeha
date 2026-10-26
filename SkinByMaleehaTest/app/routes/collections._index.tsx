@@ -2,93 +2,137 @@ import {useLoaderData, Link} from 'react-router';
 import type {Route} from './+types/collections._index';
 import {getPaginationVariables, Image} from '@shopify/hydrogen';
 import type {CollectionFragment} from 'storefrontapi.generated';
+import styles from '~/styles/sbm-shop.css?url';
+import {accentTitle} from '~/lib/sbm-shop';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {AccentTitle} from '~/components/sbm/ShopListing';
+import {Emblem} from '~/components/sbm/Brand';
+import {Button} from '~/components/sbm/Controls';
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+/** Internal collections (homepage merchandising), not shown to shoppers. */
+const HIDDEN = new Set(['the-range', 'frontpage']);
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+/** Brand tints behind collection tiles, in turn. */
+const TINTS = [
+  'var(--sbm-aloe-dew)',
+  'var(--sbm-cloud-mask)',
+  'var(--sbm-centella-mist)',
+  'var(--sbm-rice-milk)',
+];
 
-  return {...deferredData, ...criticalData};
-}
+const INTRO =
+  'Explore the range by collection — gentle, effective formulas, each one formulated by a dermatologist.';
 
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, request}: Route.LoaderArgs) {
+export const meta: Route.MetaFunction = () => {
+  return [
+    {title: 'Collections | skinbymaleeha'},
+    {name: 'description', content: INTRO},
+  ];
+};
+
+export const links: Route.LinksFunction = () => [{rel: 'stylesheet', href: styles}];
+
+export async function loader({context, request}: Route.LoaderArgs) {
   const paginationVariables = getPaginationVariables(request, {
-    pageBy: 4,
+    pageBy: 12,
   });
 
-  const [{collections}] = await Promise.all([
-    context.storefront.query(COLLECTIONS_QUERY, {
-      variables: paginationVariables,
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
+  const {collections} = await context.storefront.query(COLLECTIONS_QUERY, {
+    variables: paginationVariables,
+  });
 
-  return {collections};
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
+  return {
+    collections: {
+      ...collections,
+      nodes: collections.nodes.filter((c) => !HIDDEN.has(c.handle)),
+    },
+  };
 }
 
 export default function Collections() {
   const {collections} = useLoaderData<typeof loader>();
 
   return (
-    <div className="collections">
-      <h1>Collections</h1>
-      <PaginatedResourceSection<CollectionFragment>
-        connection={collections}
-        resourcesClassName="collections-grid"
-      >
-        {({node: collection, index}) => (
-          <CollectionItem
-            key={collection.id}
-            collection={collection}
-            index={index}
-          />
-        )}
-      </PaginatedResourceSection>
-    </div>
+    <section className="sf-section sbm-shop">
+      <div className="sf-wrap">
+        <p className="sbm-eyebrow sbm-shop__eyebrow">Shop</p>
+        <div className="sf-head-row">
+          <div className="sbm-shop__intro">
+            <h1 className="sbm-display-m">
+              Our <em>collections</em>
+            </h1>
+            <p className="sbm-body">{INTRO}</p>
+          </div>
+          <Button variant="link" iconRight="arrow-right" to="/collections/all">
+            Shop all skincare
+          </Button>
+        </div>
+        <PaginatedResourceSection<CollectionFragment>
+          connection={collections}
+          resourcesClassName="sbm-colls"
+          empty={
+            <div className="sbm-shop__empty">
+              <p className="sbm-body">New collections are on their way.</p>
+              <Button variant="outline" to="/collections/all">
+                Shop all skincare
+              </Button>
+            </div>
+          }
+        >
+          {({node: collection, index}) => (
+            <CollectionTile key={collection.id} collection={collection} index={index} />
+          )}
+        </PaginatedResourceSection>
+      </div>
+    </section>
   );
 }
 
-function CollectionItem({
+function CollectionTile({
   collection,
   index,
 }: {
   collection: CollectionFragment;
   index: number;
 }) {
+  const to = `/collections/${collection.handle}`;
+  // Collections without their own image borrow their first product's.
+  const image = collection.image ?? collection.products.nodes[0]?.featuredImage;
   return (
-    <Link
-      className="collection-item"
-      key={collection.id}
-      to={`/collections/${collection.handle}`}
-      prefetch="intent"
-    >
-      {collection?.image && (
-        <Image
-          alt={collection.image.altText || collection.title}
-          aspectRatio="1/1"
-          data={collection.image}
-          loading={index < 3 ? 'eager' : undefined}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
-      )}
-      <h5>{collection.title}</h5>
-    </Link>
+    <article className="sbm-coll">
+      <Link
+        to={to}
+        prefetch="intent"
+        className="sbm-coll__media"
+        style={{background: TINTS[index % TINTS.length]}}
+        aria-label={collection.title}
+        tabIndex={-1}
+      >
+        {image ? (
+          <Image
+            data={image}
+            alt={image.altText || collection.title}
+            sizes="(min-width: 961px) 33vw, (min-width: 601px) 50vw, 100vw"
+            loading={index < 3 ? 'eager' : undefined}
+          />
+        ) : (
+          <Emblem size={56} alt="" />
+        )}
+      </Link>
+      <div className="sbm-coll__body">
+        <h2 className="sbm-coll__title">
+          <Link to={to} prefetch="intent">
+            <AccentTitle parts={accentTitle(collection.title)} />
+          </Link>
+        </h2>
+        {collection.description ? (
+          <p className="sbm-coll__desc">{collection.description}</p>
+        ) : null}
+        <Button variant="link" iconRight="arrow-right" to={to}>
+          Shop the collection
+        </Button>
+      </div>
+    </article>
   );
 }
 
@@ -97,12 +141,24 @@ const COLLECTIONS_QUERY = `#graphql
     id
     title
     handle
+    description
     image {
       id
       url
       altText
       width
       height
+    }
+    products(first: 1) {
+      nodes {
+        featuredImage {
+          id
+          url
+          altText
+          width
+          height
+        }
+      }
     }
   }
   query StoreCollections(

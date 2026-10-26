@@ -3,6 +3,7 @@ import type {
   AddressFragment,
   CustomerFragment,
 } from 'customer-accountapi.generated';
+import {useEffect, useState} from 'react';
 import {
   data,
   Form,
@@ -12,6 +13,9 @@ import {
   type Fetcher,
 } from 'react-router';
 import type {Route} from './+types/account.addresses';
+import {Badge, Button, Input} from '~/components/sbm/Controls';
+import {Checkbox, FormMessage} from '~/components/sbm/FormFields';
+import {PageEmpty, PageSectionHead} from '~/components/sbm/PageHeader';
 import {
   UPDATE_ADDRESS_MUTATION,
   DELETE_ADDRESS_MUTATION,
@@ -28,7 +32,7 @@ export type ActionResponse = {
 };
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Addresses'}];
+  return [{title: 'Addresses | skinbymaleeha'}];
 };
 
 export async function loader({context}: Route.LoaderArgs) {
@@ -261,25 +265,26 @@ export default function Addresses() {
   const {defaultAddress, addresses} = customer;
 
   return (
-    <div className="account-addresses">
-      <h2>Addresses</h2>
-      <br />
-      <div>
-        <div>
-          <legend>Create address</legend>
+    <div className="sf-account__addresses">
+      <PageSectionHead title="Addresses" />
+      <div className="sf-addresses">
+        <div className="sf-addrlist">
+          <h3 className="sbm-label">Saved addresses</h3>
+          {!addresses.nodes.length ? (
+            <PageEmpty title="No saved addresses yet.">
+              Add one and it will be ready at checkout.
+            </PageEmpty>
+          ) : (
+            <ExistingAddresses addresses={addresses} defaultAddress={defaultAddress} />
+          )}
+        </div>
+        <div className="sbm-card sf-box">
+          <div className="sf-formhead">
+            <h3 className="sbm-label">Add an address</h3>
+            <span className="sbm-caption">Fields marked * are required.</span>
+          </div>
           <NewAddressForm key={addresses.nodes.length} />
         </div>
-        <br />
-        <hr />
-        <br />
-        {!addresses.nodes.length ? (
-          <p>You have no addresses saved.</p>
-        ) : (
-          <ExistingAddresses
-            addresses={addresses}
-            defaultAddress={defaultAddress}
-          />
-        )}
       </div>
     </div>
   );
@@ -302,20 +307,15 @@ function NewAddressForm() {
 
   return (
     <AddressForm
+      method="POST"
       addressId={'NEW_ADDRESS_ID'}
       address={newAddress}
       defaultAddress={null}
     >
       {({stateForMethod}) => (
-        <div>
-          <button
-            disabled={stateForMethod('POST') !== 'idle'}
-            formMethod="POST"
-            type="submit"
-          >
-            {stateForMethod('POST') !== 'idle' ? 'Creating' : 'Create'}
-          </button>
-        </div>
+        <Button disabled={stateForMethod('POST') !== 'idle'} type="submit">
+          {stateForMethod('POST') !== 'idle' ? 'Adding…' : 'Add address'}
+        </Button>
       )}
     </AddressForm>
   );
@@ -326,45 +326,106 @@ function ExistingAddresses({
   defaultAddress,
 }: Pick<CustomerFragment, 'addresses' | 'defaultAddress'>) {
   return (
-    <div>
-      <legend>Existing addresses</legend>
+    <>
       {addresses.nodes.map((address) => (
-        <AddressForm
+        <ExistingAddress
           key={address.id}
+          address={address}
+          defaultAddress={defaultAddress}
+        />
+      ))}
+    </>
+  );
+}
+
+/** Saved address card: the formatted address, then edit (inline form) and remove. */
+function ExistingAddress({
+  address,
+  defaultAddress,
+}: {
+  address: AddressFragment;
+  defaultAddress: CustomerFragment['defaultAddress'];
+}) {
+  const [editing, setEditing] = useState(false);
+  const action = useActionData<ActionResponse>();
+  const {state, formMethod, formData} = useNavigation();
+  const isDefault = defaultAddress?.id === address.id;
+  const pendingHere = state !== 'idle' && formData?.get('addressId') === address.id;
+  const removing = pendingHere && formMethod === 'DELETE';
+  const error = action?.error?.[address.id];
+  const name = [address.firstName, address.lastName].filter(Boolean).join(' ');
+
+  // close the editor once a save has gone through
+  useEffect(() => {
+    if (action?.updatedAddress && !action.error) setEditing(false);
+  }, [action]);
+
+  return (
+    <div className="sbm-card sf-box sf-addr">
+      <div className="sf-addr__top">
+        <p className="sf-addr__name">{name || 'Address'}</p>
+        {isDefault ? (
+          <Badge tone="centella" size="sm">
+            Default
+          </Badge>
+        ) : null}
+      </div>
+      {editing ? (
+        <AddressForm
+          method="PUT"
           addressId={address.id}
           address={address}
           defaultAddress={defaultAddress}
         >
           {({stateForMethod}) => (
-            <div>
-              <button
-                disabled={stateForMethod('PUT') !== 'idle'}
-                formMethod="PUT"
-                type="submit"
-              >
-                {stateForMethod('PUT') !== 'idle' ? 'Saving' : 'Save'}
-              </button>
-              <button
-                disabled={stateForMethod('DELETE') !== 'idle'}
-                formMethod="DELETE"
-                type="submit"
-              >
-                {stateForMethod('DELETE') !== 'idle' ? 'Deleting' : 'Delete'}
-              </button>
-            </div>
+            <>
+              <Button disabled={stateForMethod('PUT') !== 'idle'} type="submit">
+                {stateForMethod('PUT') !== 'idle' ? 'Saving…' : 'Save address'}
+              </Button>
+              <Button variant="link" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </>
           )}
         </AddressForm>
-      ))}
+      ) : (
+        <>
+          <address className="sf-addr__lines">
+            {address.formatted
+              // the name is already the card heading
+              .filter((line, i) => !(i === 0 && name && line === name))
+              .map((line, i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <p key={i}>{line}</p>
+              ))}
+            {address.phoneNumber ? <p>{address.phoneNumber}</p> : null}
+          </address>
+          {error ? <FormMessage>{error}</FormMessage> : null}
+          <div className="sf-addr__actions">
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Form method="DELETE">
+              <input type="hidden" name="addressId" value={address.id} />
+              <Button variant="link" size="sm" type="submit" disabled={removing}>
+                {removing ? 'Removing…' : 'Remove'}
+              </Button>
+            </Form>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-export function AddressForm({
+function AddressForm({
+  method,
   addressId,
   address,
   defaultAddress,
   children,
 }: {
+  method: 'POST' | 'PUT';
   addressId: AddressFragment['id'];
   address: CustomerAddressInput;
   defaultAddress: CustomerFragment['defaultAddress'];
@@ -372,144 +433,126 @@ export function AddressForm({
     stateForMethod: (method: 'PUT' | 'POST' | 'DELETE') => Fetcher['state'];
   }) => React.ReactNode;
 }) {
-  const {state, formMethod} = useNavigation();
+  const {state, formMethod, formData} = useNavigation();
   const action = useActionData<ActionResponse>();
   const error = action?.error?.[addressId];
   const isDefaultAddress = defaultAddress?.id === addressId;
+  const pendingHere = formData?.get('addressId') === addressId;
   return (
-    <Form id={addressId}>
-      <fieldset>
+    <Form method={method}>
+      <fieldset className="sf-fieldset">
+        <legend className="sr-only">
+          {addressId === 'NEW_ADDRESS_ID' ? 'New address' : 'Edit address'}
+        </legend>
         <input type="hidden" name="addressId" defaultValue={addressId} />
-        <label htmlFor="firstName">First name*</label>
-        <input
-          aria-label="First name"
-          autoComplete="given-name"
-          defaultValue={address?.firstName ?? ''}
-          id="firstName"
-          name="firstName"
-          placeholder="First name"
-          required
-          type="text"
-        />
-        <label htmlFor="lastName">Last name*</label>
-        <input
-          aria-label="Last name"
-          autoComplete="family-name"
-          defaultValue={address?.lastName ?? ''}
-          id="lastName"
-          name="lastName"
-          placeholder="Last name"
-          required
-          type="text"
-        />
-        <label htmlFor="company">Company</label>
-        <input
-          aria-label="Company"
-          autoComplete="organization"
-          defaultValue={address?.company ?? ''}
-          id="company"
-          name="company"
-          placeholder="Company"
-          type="text"
-        />
-        <label htmlFor="address1">Address line*</label>
-        <input
-          aria-label="Address line 1"
-          autoComplete="address-line1"
-          defaultValue={address?.address1 ?? ''}
-          id="address1"
-          name="address1"
-          placeholder="Address line 1*"
-          required
-          type="text"
-        />
-        <label htmlFor="address2">Address line 2</label>
-        <input
-          aria-label="Address line 2"
-          autoComplete="address-line2"
-          defaultValue={address?.address2 ?? ''}
-          id="address2"
-          name="address2"
-          placeholder="Address line 2"
-          type="text"
-        />
-        <label htmlFor="city">City*</label>
-        <input
-          aria-label="City"
-          autoComplete="address-level2"
-          defaultValue={address?.city ?? ''}
-          id="city"
-          name="city"
-          placeholder="City"
-          required
-          type="text"
-        />
-        <label htmlFor="zoneCode">State / Province*</label>
-        <input
-          aria-label="State/Province"
-          autoComplete="address-level1"
-          defaultValue={address?.zoneCode ?? ''}
-          id="zoneCode"
-          name="zoneCode"
-          placeholder="State / Province"
-          required
-          type="text"
-        />
-        <label htmlFor="zip">Zip / Postal Code*</label>
-        <input
-          aria-label="Zip"
-          autoComplete="postal-code"
-          defaultValue={address?.zip ?? ''}
-          id="zip"
-          name="zip"
-          placeholder="Zip / Postal Code"
-          required
-          type="text"
-        />
-        <label htmlFor="territoryCode">Country Code*</label>
-        <input
-          aria-label="Country code"
-          autoComplete="country"
-          defaultValue={address?.territoryCode ?? ''}
-          id="territoryCode"
-          name="territoryCode"
-          placeholder="Country"
-          required
-          type="text"
-          maxLength={2}
-        />
-        <label htmlFor="phoneNumber">Phone</label>
-        <input
-          aria-label="Phone Number"
-          autoComplete="tel"
-          defaultValue={address?.phoneNumber ?? ''}
-          id="phoneNumber"
-          name="phoneNumber"
-          placeholder="+16135551111"
-          pattern="^\+?[1-9]\d{3,14}$"
-          type="tel"
-        />
-        <div>
-          <input
-            defaultChecked={isDefaultAddress}
-            id="defaultAddress"
-            name="defaultAddress"
-            type="checkbox"
+        <div className="sf-form sf-form--stack">
+          <Input
+            label="First name*"
+            autoComplete="given-name"
+            defaultValue={address?.firstName ?? ''}
+            name="firstName"
+            placeholder="First name"
+            required
+            type="text"
           />
-          <label htmlFor="defaultAddress">Set as default address</label>
+          <Input
+            label="Last name*"
+            autoComplete="family-name"
+            defaultValue={address?.lastName ?? ''}
+            name="lastName"
+            placeholder="Last name"
+            required
+            type="text"
+          />
+          <Input
+            className="full"
+            label="Company"
+            autoComplete="organization"
+            defaultValue={address?.company ?? ''}
+            name="company"
+            placeholder="Company"
+            type="text"
+          />
+          <Input
+            className="full"
+            label="Address line 1*"
+            autoComplete="address-line1"
+            defaultValue={address?.address1 ?? ''}
+            name="address1"
+            placeholder="House, street"
+            required
+            type="text"
+          />
+          <Input
+            className="full"
+            label="Address line 2"
+            autoComplete="address-line2"
+            defaultValue={address?.address2 ?? ''}
+            name="address2"
+            placeholder="Apartment, area"
+            type="text"
+          />
+          <Input
+            label="City*"
+            autoComplete="address-level2"
+            defaultValue={address?.city ?? ''}
+            name="city"
+            placeholder="City"
+            required
+            type="text"
+          />
+          <Input
+            label="State / Province*"
+            autoComplete="address-level1"
+            defaultValue={address?.zoneCode ?? ''}
+            name="zoneCode"
+            placeholder="State / Province"
+            required
+            type="text"
+          />
+          <Input
+            label="Postal code*"
+            autoComplete="postal-code"
+            defaultValue={address?.zip ?? ''}
+            name="zip"
+            placeholder="Postal code"
+            required
+            type="text"
+          />
+          <Input
+            label="Country code*"
+            autoComplete="country"
+            defaultValue={address?.territoryCode ?? ''}
+            name="territoryCode"
+            placeholder="e.g. PK"
+            required
+            type="text"
+            maxLength={2}
+          />
+          <Input
+            className="full"
+            label="Phone"
+            autoComplete="tel"
+            defaultValue={address?.phoneNumber ?? ''}
+            name="phoneNumber"
+            placeholder="+923001234567"
+            pattern="^\+?[1-9]\d{3,14}$"
+            type="tel"
+          />
+          <Checkbox
+            className="full"
+            defaultChecked={isDefaultAddress}
+            name="defaultAddress"
+            label="Set as default address"
+          />
+          {error ? <FormMessage className="full">{error}</FormMessage> : null}
+          <div className="sf-form__actions full">
+            {children({
+              stateForMethod: (method) =>
+                formMethod === method && pendingHere ? state : 'idle',
+            })}
+          </div>
         </div>
-        {error ? (
-          <p>
-            <mark>
-              <small>{error}</small>
-            </mark>
-          </p>
-        ) : (
-          <br />
-        )}
-        {children({
-          stateForMethod: (method) => (formMethod === method ? state : 'idle'),
-        })}
       </fieldset>
     </Form>
   );

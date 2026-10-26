@@ -1,8 +1,13 @@
 import {Link} from 'react-router';
-import {Image, Money, Pagination} from '@shopify/hydrogen';
+import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {Button} from '~/components/sbm/Controls';
+import {PageEmpty, PageLinkList, PageSectionHead} from '~/components/sbm/PageHeader';
+import {ProductCard} from '~/components/sbm/ProductCard';
+import {toCardProduct} from '~/lib/sbm-product';
 import {urlWithTrackingParams, type RegularSearchReturn} from '~/lib/search';
 
 type SearchItems = RegularSearchReturn['result']['items'];
+type SearchProductNode = SearchItems['products']['nodes'][number];
 type PartialSearchResult<ItemType extends keyof SearchItems> = Pick<
   SearchItems,
   ItemType
@@ -13,6 +18,9 @@ type SearchResultsProps = RegularSearchReturn & {
   children: (args: SearchItems & {term: string}) => React.ReactNode;
 };
 
+/** Popular searches offered before a search and after an empty one. */
+const SUGGESTIONS = ['Moisturiser', 'SPF', 'Centella', 'Hand wash'];
+
 export function SearchResults({
   term,
   result,
@@ -22,13 +30,14 @@ export function SearchResults({
     return null;
   }
 
-  return children({...result.items, term});
+  return <div className="sf-results">{children({...result.items, term})}</div>;
 }
 
 SearchResults.Articles = SearchResultsArticles;
 SearchResults.Pages = SearchResultsPages;
 SearchResults.Products = SearchResultsProducts;
 SearchResults.Empty = SearchResultsEmpty;
+SearchResults.Suggestions = SearchSuggestions;
 
 function SearchResultsArticles({
   term,
@@ -39,27 +48,20 @@ function SearchResultsArticles({
   }
 
   return (
-    <div className="search-result">
-      <h2>Articles</h2>
-      <div>
-        {articles?.nodes?.map((article) => {
-          const articleUrl = urlWithTrackingParams({
-            baseUrl: `/blogs/${article.handle}`,
+    <section aria-label="Journal results">
+      <PageSectionHead title="Journal" meta={countLabel(articles.nodes.length, 'article')} />
+      <PageLinkList
+        items={articles.nodes.map((article) => ({
+          id: article.id,
+          to: urlWithTrackingParams({
+            baseUrl: `/blogs/${article.blog.handle}/${article.handle}`,
             trackingParams: article.trackingParameters,
             term,
-          });
-
-          return (
-            <div className="search-results-item" key={article.id}>
-              <Link prefetch="intent" to={articleUrl}>
-                {article.title}
-              </Link>
-            </div>
-          );
-        })}
-      </div>
-      <br />
-    </div>
+          }),
+          label: article.title,
+        }))}
+      />
+    </section>
   );
 }
 
@@ -69,27 +71,20 @@ function SearchResultsPages({term, pages}: PartialSearchResult<'pages'>) {
   }
 
   return (
-    <div className="search-result">
-      <h2>Pages</h2>
-      <div>
-        {pages?.nodes?.map((page) => {
-          const pageUrl = urlWithTrackingParams({
+    <section aria-label="Page results">
+      <PageSectionHead title="Pages" meta={countLabel(pages.nodes.length, 'page')} />
+      <PageLinkList
+        items={pages.nodes.map((page) => ({
+          id: page.id,
+          to: urlWithTrackingParams({
             baseUrl: `/pages/${page.handle}`,
             trackingParams: page.trackingParameters,
             term,
-          });
-
-          return (
-            <div className="search-results-item" key={page.id}>
-              <Link prefetch="intent" to={pageUrl}>
-                {page.title}
-              </Link>
-            </div>
-          );
-        })}
-      </div>
-      <br />
-    </div>
+          }),
+          label: page.title,
+        }))}
+      />
+    </section>
   );
 }
 
@@ -102,60 +97,77 @@ function SearchResultsProducts({
   }
 
   return (
-    <div className="search-result">
-      <h2>Products</h2>
-      <Pagination connection={products}>
-        {({nodes, isLoading, NextLink, PreviousLink}) => {
-          const ItemsMarkup = nodes.map((product) => {
-            const productUrl = urlWithTrackingParams({
-              baseUrl: `/products/${product.handle}`,
-              trackingParams: product.trackingParameters,
-              term,
-            });
+    <section aria-label="Product results">
+      <PaginatedResourceSection<SearchProductNode>
+        connection={products}
+        resourcesClassName="sf-grid"
+        header={({nodes}) => (
+          <PageSectionHead title="Products" meta={countLabel(nodes.length, 'product')} />
+        )}
+      >
+        {({node, index}) => (
+          <ProductCard
+            key={node.id}
+            loading={index < 4 ? 'eager' : 'lazy'}
+            product={{
+              ...toCardProduct(node),
+              to: urlWithTrackingParams({
+                baseUrl: `/products/${node.handle}`,
+                trackingParams: node.trackingParameters,
+                term,
+              }),
+            }}
+          />
+        )}
+      </PaginatedResourceSection>
+    </section>
+  );
+}
 
-            const price = product?.selectedOrFirstAvailableVariant?.price;
-            const image = product?.selectedOrFirstAvailableVariant?.image;
-
-            return (
-              <div className="search-results-item" key={product.id}>
-                <Link prefetch="intent" to={productUrl}>
-                  {image && (
-                    <Image data={image} alt={product.title} width={50} />
-                  )}
-                  <div>
-                    <p>{product.title}</p>
-                    <small>{price && <Money data={price} />}</small>
-                  </div>
-                </Link>
-              </div>
-            );
-          });
-
-          return (
-            <div>
-              <div>
-                <PreviousLink>
-                  {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-                </PreviousLink>
-              </div>
-              <div>
-                {ItemsMarkup}
-                <br />
-              </div>
-              <div>
-                <NextLink>
-                  {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-                </NextLink>
-              </div>
-            </div>
-          );
-        }}
-      </Pagination>
-      <br />
+function SearchResultsEmpty({term}: {term: string}) {
+  // a quoted search ("spf") shouldn't end up double-quoted
+  const shown = term.replace(/^["'“”‘’]+|["'“”‘’]+$/g, '');
+  return (
+    <div className="sf-search-empty">
+      <PageEmpty
+        title={`Nothing matched “${shown}”.`}
+        actions={
+          <>
+            <Button to="/collections/all">Shop all skincare</Button>
+            <Button variant="outline" to="/search">
+              Clear search
+            </Button>
+          </>
+        }
+      >
+        Check the spelling, or try a broader word — a product type, an ingredient or a skin
+        concern.
+      </PageEmpty>
+      <SearchSuggestions />
     </div>
   );
 }
 
-function SearchResultsEmpty() {
-  return <p>No results, try a different search.</p>;
+function SearchSuggestions() {
+  return (
+    <div className="sf-suggest">
+      <p className="sbm-label">Popular searches</p>
+      <div className="sf-row">
+        {SUGGESTIONS.map((s) => (
+          <Link
+            key={s}
+            className="sbm-tag"
+            to={`/search?q=${encodeURIComponent(s)}`}
+            prefetch="intent"
+          >
+            {s}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function countLabel(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
