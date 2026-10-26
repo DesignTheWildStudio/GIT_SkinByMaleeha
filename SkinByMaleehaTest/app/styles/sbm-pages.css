@@ -3,33 +3,19 @@
    for these pages; they follow the Shop page's header and the cart's info boxes. */
 
 /* ---------- Page shell + header (the Shop page's rhythm) ---------- */
-/* min-height keeps the footer down on short pages (empty states, errors) */
-.sf-pageshell{padding-top:clamp(40px,6vw,64px);min-height:60vh}
 .sf-pagehead{margin-bottom:clamp(32px,4vw,44px)}
 .sf-pagehead__row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px}
 .sf-pagehead__intro{display:flex;flex-direction:column;gap:16px;min-width:0;max-width:880px}
 .sf-pagehead__intro .sbm-eyebrow{margin-bottom:-2px}
 /* break only words too long for the line (anywhere would split short words in narrow columns) */
-.sf-pagehead h1,.sf-doc__head h1,.sf-error :is(h1,h2){overflow-wrap:break-word}
-.sf-pagehead__lede{max-width:520px;color:var(--fg-2)}
+.sf-pagehead h1,.sf-doc__head h1{overflow-wrap:break-word}
 .sf-sectionhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:28px}
-
-/* Breadcrumbs: router links (the kit used buttons) */
-.sf-crumbs{min-width:0}
-.sf-crumbs svg{flex:none}
-.sf-crumbs a{color:inherit;text-decoration:none}
-.sf-crumbs a:hover{color:var(--fg-1);text-decoration:underline}
-.sf-crumbs__current{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--fg-1)}
 
 /* Info boxes */
 .sf-box{min-width:0}
 .sf-empty{display:flex;flex-direction:column;align-items:flex-start;gap:16px;max-width:var(--container-text);overflow-wrap:anywhere}
 .sf-empty__copy{color:var(--fg-2)}
 .sf-empty__actions{gap:12px;margin-top:8px}
-
-/* Chips that are links (popular searches) */
-a.sbm-tag{color:var(--fg-1);text-decoration:none;cursor:pointer}
-a.sbm-tag:hover{border-color:var(--border-strong);color:var(--fg-1)}
 
 /* ---------- Document layout: sticky title column + reading column ---------- */
 /* the title column keeps room for a caps display word; the reading column gives way on small laptops */
@@ -197,7 +183,7 @@ a.sbm-tab:hover{color:var(--fg-1)}
 @media (max-width:600px){
   .sf-box{padding:24px}
   /* paired CTAs stack full width instead of wrapping unevenly */
-  .sf-empty__actions,.sf-error__actions{flex-direction:column;align-items:stretch;align-self:stretch}
+  .sf-empty__actions{flex-direction:column;align-items:stretch;align-self:stretch}
   .sf-articles{grid-template-columns:minmax(0,1fr)}
   .sf-article__hero{aspect-ratio:4/3}
   .sf-form--stack{grid-template-columns:minmax(0,1fr)}

@@ -248,6 +248,7 @@ export function ErrorBoundary() {
   return (
     <PageError
       inline
+      notFoundTitle="Order"
       notFoundCopy="We couldn’t find that order on your account. It may be from another account, or the link may be out of date."
       actions={
         <>

@@ -11,11 +11,6 @@
 .sbm-shop__empty{display:flex;flex-direction:column;align-items:flex-start;gap:24px;padding:24px 0 8px}
 .sbm-shop__empty .sbm-body{color:var(--fg-2)}
 
-/* Filter chips are router links here; give them the button chip's look */
-a.sbm-tag{text-decoration:none;cursor:pointer}
-a.sbm-tag:hover{border-color:var(--border-strong);color:var(--fg-1)}
-a.sbm-tag--selected,a.sbm-tag--selected:hover{border-color:var(--sbm-activated-charcoal);color:var(--sbm-serum)}
-
 /* ---------- Collections index ---------- */
 .sbm-colls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px 24px}
 .sbm-coll{display:flex;flex-direction:column;gap:16px;min-width:0}

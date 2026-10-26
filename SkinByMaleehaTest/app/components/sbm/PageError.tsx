@@ -10,10 +10,13 @@ import {Button} from './Controls';
  */
 export function PageError({
   inline = false,
+  notFoundTitle = 'Page',
   notFoundCopy = 'The page you’re looking for may have moved, or the link may be out of date.',
   actions,
 }: {
   inline?: boolean;
+  /** The upright word before the italic "not found". */
+  notFoundTitle?: string;
   notFoundCopy?: string;
   actions?: ReactNode;
 }) {
@@ -43,7 +46,7 @@ export function PageError({
       <Heading className={inline ? 'sbm-h2' : 'sbm-display-m'}>
         {notFound ? (
           <>
-            Page <em>not found</em>
+            {notFoundTitle} <em>not found</em>
           </>
         ) : (
           <>

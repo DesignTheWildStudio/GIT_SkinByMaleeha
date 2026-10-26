@@ -15,7 +15,8 @@ type SearchFormProps = Omit<FormProps, 'children' | 'method'> & {
  */
 export function SearchForm({
   defaultValue = '',
-  placeholder = 'Search moisturisers, SPF, ingredients…',
+  // short enough to show whole beside the button on a 360px phone; the page lede gives the hints
+  placeholder = 'Search skincare…',
   action = '/search',
   className = '',
   ...props

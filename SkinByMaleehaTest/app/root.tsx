@@ -1,7 +1,6 @@
 import {Analytics, getShopAnalytics, useNonce} from '@shopify/hydrogen';
 import {
   Outlet,
-  useRouteError,
   isRouteErrorResponse,
   type ShouldRevalidateFunction,
   Links,
@@ -17,7 +16,7 @@ import bodoniModa from '~/assets/sbm/fonts/bodoni-moda.woff2?url';
 import {SBM_FOOTER_QUERY} from '~/lib/fragments';
 import sbmStyles from '~/styles/sbm.css?url';
 import {PageLayout} from './components/PageLayout';
-import {Button} from './components/sbm/Controls';
+import {PageError} from './components/sbm/PageError';
 
 export type RootLoader = typeof loader;
 
@@ -159,36 +158,22 @@ export default function App() {
   );
 }
 
+/** Title for errors that reach the root boundary (only the root's meta renders then). */
+export const meta: Route.MetaFunction = ({error}) => {
+  if (!error) return [];
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  return [{title: `${notFound ? 'Page not found' : 'Something went wrong'} | skinbymaleeha`}];
+};
+
 export function ErrorBoundary() {
-  const error = useRouteError();
-  let errorMessage = 'Unknown error';
-  let errorStatus = 500;
-
-  if (isRouteErrorResponse(error)) {
-    errorMessage = error?.data?.message ?? error.data;
-    errorStatus = error.status;
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
+  const data = useRouteLoaderData<RootLoader>('root');
+  // When a child route failed, the root data is still there: keep the site frame.
+  if (data) {
+    return (
+      <PageLayout {...data}>
+        <PageError />
+      </PageLayout>
+    );
   }
-
-  return (
-    <section className="sf-section">
-      <div className="sf-wrap sf-page sf-error">
-        <p className="sbm-eyebrow">Error {errorStatus}</p>
-        <h1 className="sbm-h1">
-          {errorStatus === 404 ? (
-            <>
-              Page <em>not found</em>
-            </>
-          ) : (
-            <>
-              Something <em>went wrong</em>
-            </>
-          )}
-        </h1>
-        {errorMessage && <p className="sbm-body sf-error__message">{errorMessage}</p>}
-        <Button to="/">Back to home</Button>
-      </div>
-    </section>
-  );
+  return <PageError />;
 }
